@@ -1,9 +1,11 @@
+import os
 from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.api.v1.router import router as v1_router
@@ -39,6 +41,10 @@ app.add_middleware(
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(StructuredLoggingMiddleware)
+
+# Uploads dizini
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # API v1 rotaları
 app.include_router(v1_router)

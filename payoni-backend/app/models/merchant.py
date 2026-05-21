@@ -17,12 +17,25 @@ class Merchant(Base, UUIDMixin, TimestampMixin):
     tax_id: Mapped[Optional[str]] = mapped_column(String(20))
     phone: Mapped[Optional[str]] = mapped_column(String(20))
 
+    # Kurumsal bilgiler
+    company_type: Mapped[Optional[str]] = mapped_column(String(50))
+    tax_office: Mapped[Optional[str]] = mapped_column(String(255))
+    trade_registry_no: Mapped[Optional[str]] = mapped_column(String(100))
+    company_address: Mapped[Optional[str]] = mapped_column(String(1000))
+
+    # Yetkili kişi
+    authorized_name: Mapped[Optional[str]] = mapped_column(String(255))
+    authorized_title: Mapped[Optional[str]] = mapped_column(String(100))
+    authorized_tc: Mapped[Optional[str]] = mapped_column(String(11))
+    authorized_phone: Mapped[Optional[str]] = mapped_column(String(20))
+
     webhook_url: Mapped[Optional[str]] = mapped_column(String(512))
     webhook_secret: Mapped[Optional[str]] = mapped_column(String(128))
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     plan: Mapped[str] = mapped_column(String(50), default="free")
+    onboarding_status: Mapped[str] = mapped_column(String(30), default="pending_documents")
 
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
@@ -32,3 +45,4 @@ class Merchant(Base, UUIDMixin, TimestampMixin):
     transactions: Mapped[List["Transaction"]] = relationship(back_populates="merchant")
     payment_links: Mapped[List["PaymentLink"]] = relationship(back_populates="merchant", cascade="all, delete-orphan")
     widgets: Mapped[List["Widget"]] = relationship(back_populates="merchant", cascade="all, delete-orphan")
+    documents: Mapped[List["MerchantDocument"]] = relationship(back_populates="merchant", cascade="all, delete-orphan")

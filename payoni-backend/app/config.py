@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     ALGORITHM: str = "HS256"
 
+    UPLOADS_DIR: str = "uploads"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):

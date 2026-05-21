@@ -5,6 +5,7 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import LandingPage from '@/pages/landing/LandingPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
+import PendingVerificationPage from '@/pages/auth/PendingVerificationPage'
 import AppShell from '@/components/layout/AppShell'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
 import POSAccountsPage from '@/pages/pos-accounts/POSAccountsPage'
@@ -41,6 +42,9 @@ export default function App() {
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/pending-verification" element={
+          <ProtectedRoute><PendingVerificationPage /></ProtectedRoute>
+        } />
 
         {/* Public */}
         <Route path="/pay/:shortCode" element={<PaymentLinkPage />} />

@@ -40,7 +40,17 @@ async def register(body: RegisterRequest, response: Response, db: AsyncSession =
         email=body.email,
         password_hash=hash_password(body.password),
         business_name=body.business_name,
-        phone=body.phone,
+        phone=body.phone or body.authorized_phone,
+        company_type=body.company_type,
+        tax_id=body.tax_id,
+        tax_office=body.tax_office,
+        trade_registry_no=body.trade_registry_no,
+        company_address=body.company_address,
+        authorized_name=body.authorized_name,
+        authorized_title=body.authorized_title,
+        authorized_tc=body.authorized_tc,
+        authorized_phone=body.authorized_phone,
+        onboarding_status="pending_documents",
     )
     db.add(merchant)
     await db.commit()
