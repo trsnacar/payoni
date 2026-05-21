@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Code2, Copy, Trash2, Edit2, X, Info } from 'lucide-react'
+import { Plus, Code2, Copy, Trash2, Edit2, X, Info, Building2, Users, Check } from 'lucide-react'
 import apiClient from '@/api/client'
 import { posAccountsApi, PosAccount } from '@/api/posAccounts'
 
@@ -307,9 +307,9 @@ function WidgetFormModal({ activePOS, existing, onClose }: WidgetFormModalProps)
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-xl shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="font-semibold">{existing ? 'Widget Düzenle' : 'Widget Oluştur'}</h2>
+      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
+          <h2 className="font-semibold text-lg">{existing ? 'Widget Düzenle' : 'Widget Oluştur'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
             <X size={18} />
           </button>
@@ -414,31 +414,62 @@ function WidgetFormModal({ activePOS, existing, onClose }: WidgetFormModalProps)
           </div>
 
           {/* Taksit izni */}
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors">
             <input
               type="checkbox"
               checked={allowInstallments}
               onChange={(e) => setAllowInstallments(e.target.checked)}
               className="w-4 h-4"
             />
-            <span className="text-sm text-gray-700">Müşteriye taksit seçimi sun</span>
-          </label>
-
-          {/* Komisyon yansıtma */}
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={commissionPassthrough}
-              onChange={(e) => setCommissionPassthrough(e.target.checked)}
-              className="w-4 h-4 mt-0.5 shrink-0"
-            />
             <div>
-              <span className="text-sm text-gray-700">Banka komisyonunu müşteriye yansıt</span>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Aktif: taksit seçiminde gross tutar gösterilir, müşteri komisyon dahil öder.
-              </p>
+              <span className="text-sm font-medium text-gray-700">Müşteriye taksit seçimi sun</span>
+              <p className="text-xs text-gray-400">Müşteri ödeme sırasında taksit sayısı seçebilsin</p>
             </div>
           </label>
+
+          {/* Komisyon kart seçimi */}
+          <div>
+            <label className="label mb-2">Banka Komisyonu Karşılama</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setCommissionPassthrough(false)}
+                className={`flex items-start gap-3 p-4 border-2 rounded-xl text-left transition-all ${
+                  !commissionPassthrough
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${!commissionPassthrough ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'}`}>
+                  <Building2 size={15} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-900">Üye İş Yeri Karşılar</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Müşteri net tutarı öder</p>
+                </div>
+                {!commissionPassthrough && <Check size={15} className="text-primary-600 shrink-0 mt-0.5" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCommissionPassthrough(true)}
+                className={`flex items-start gap-3 p-4 border-2 rounded-xl text-left transition-all ${
+                  commissionPassthrough
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${commissionPassthrough ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'}`}>
+                  <Users size={15} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-900">Müşteriye Yansıt</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Gross tutar müşteriye gösterilir</p>
+                </div>
+                {commissionPassthrough && <Check size={15} className="text-primary-600 shrink-0 mt-0.5" />}
+              </button>
+            </div>
+          </div>
 
           {/* Güvenlik — izin verilen originler */}
           <div>

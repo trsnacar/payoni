@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
+import { Building2, Users } from 'lucide-react'
 import { posAccountsApi } from '@/api/posAccounts'
 import { paymentsApi, ChargeRequest, InstallmentOption } from '@/api/payments'
 import { formatCurrencyTR } from '@/utils/commission'
@@ -274,26 +275,52 @@ export function QuickChargeForm({ onSuccess }: Props) {
           </div>
         </div>
 
-        {/* Komisyon yansıtma + 3D toggle */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={commissionPassthrough}
-              onChange={(e) => setCommissionPassthrough(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-primary-600"
-            />
-            <span className="text-sm text-gray-700">Komisyonu müşteriye yansıt</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              {...register('use_3d')}
-              type="checkbox"
-              className="w-4 h-4 rounded border-gray-300 text-primary-600"
-            />
-            <span className="text-sm text-gray-700">3D Secure kullan</span>
-          </label>
+        {/* Komisyon kart seçimi */}
+        <div>
+          <label className="label mb-2">Banka Komisyonu</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setCommissionPassthrough(false)}
+              className={`flex items-center gap-3 p-3 border-2 rounded-xl text-left transition-all ${
+                !commissionPassthrough
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <Building2 size={16} className={!commissionPassthrough ? 'text-primary-600' : 'text-gray-400'} />
+              <div>
+                <p className="text-xs font-semibold text-gray-800">İş Yeri Karşılar</p>
+                <p className="text-xs text-gray-400">Müşteri net öder</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCommissionPassthrough(true)}
+              className={`flex items-center gap-3 p-3 border-2 rounded-xl text-left transition-all ${
+                commissionPassthrough
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <Users size={16} className={commissionPassthrough ? 'text-primary-600' : 'text-gray-400'} />
+              <div>
+                <p className="text-xs font-semibold text-gray-800">Müşteriye Yansıt</p>
+                <p className="text-xs text-gray-400">Gross tutar ödenir</p>
+              </div>
+            </button>
+          </div>
         </div>
+
+        {/* 3D toggle */}
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            {...register('use_3d')}
+            type="checkbox"
+            className="w-4 h-4 rounded border-gray-300 text-primary-600"
+          />
+          <span className="text-sm text-gray-700">3D Secure kullan</span>
+        </label>
 
         {/* Gross-up özeti */}
         {commissionPassthrough && selectedOption && selectedOption.count > 1 && selectedOption.gross_amount && (

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, ChevronRight } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Check } from 'lucide-react'
 import { posAccountsApi } from '@/api/posAccounts'
 
 interface EditData {
@@ -17,11 +17,13 @@ interface Props {
 
 type Step = 'pick' | 'form'
 
+const INSTALLMENT_RANGE = Array.from({ length: 12 }, (_, i) => i + 1)
+
 function ProviderLogo({ logo, name }: { logo: string; name: string }) {
   const [failed, setFailed] = useState(false)
   if (failed) {
     return (
-      <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
         {name.slice(0, 2).toUpperCase()}
       </div>
     )
@@ -30,7 +32,7 @@ function ProviderLogo({ logo, name }: { logo: string; name: string }) {
     <img
       src={logo}
       alt={name}
-      className="w-8 h-8 object-contain rounded-md"
+      className="w-10 h-10 object-contain rounded-xl"
       onError={() => setFailed(true)}
     />
   )
@@ -66,7 +68,11 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
   const createMutation = useMutation({
     mutationFn: (data: Parameters<typeof posAccountsApi.create>[0]) =>
       isEdit
-        ? posAccountsApi.update(editData!.id, { display_name: data.display_name, environment: data.environment, commission_rates: data.commission_rates })
+        ? posAccountsApi.update(editData!.id, {
+            display_name: data.display_name,
+            environment: data.environment,
+            commission_rates: data.commission_rates,
+          })
         : posAccountsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-accounts'] })
@@ -120,151 +126,218 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
   const currentList = activeCategory === 'aggregator' ? aggregators : banks
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl flex flex-col" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
-          <div className="flex items-center gap-2">
-            {step === 'form' && !isEdit && (
+    <div className="fixed inset-0 bg-gray-50 z-50 overflow-y-auto">
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {step === 'form' && !isEdit ? (
               <button
                 onClick={() => { setStep('pick'); setSelectedProvider(null) }}
-                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-700"
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
               >
-                <ChevronRight size={16} className="rotate-180" />
+                <ArrowLeft size={18} />
+                <span className="text-sm font-medium">Geri</span>
+              </button>
+            ) : (
+              <button
+                onClick={onClose}
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft size={18} />
+                <span className="text-sm font-medium">Geri Dön</span>
               </button>
             )}
+            <div className="w-px h-5 bg-gray-200" />
             <div>
-              <h2 className="font-semibold text-gray-900">
-                {isEdit ? 'POS Hesabını Düzenle' : step === 'pick' ? 'POS Hesabı Ekle' : `${selectedProvider?.name} Bağla`}
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {isEdit ? 'Görünen ad ve ortam bilgilerini güncelleyin' : step === 'pick' ? 'Sağlayıcınızı seçin' : 'Credential bilgilerini girin'}
-              </p>
+              <h1 className="text-base font-semibold text-gray-900">
+                {isEdit ? 'POS Hesabını Düzenle' : step === 'pick' ? 'POS Hesabı Ekle' : `${selectedProvider?.name ?? ''} Bağla`}
+              </h1>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400">
-            <X size={18} />
-          </button>
-        </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
-
-          {/* STEP 1 — Provider seçimi */}
-          {step === 'pick' && (
-            <div className="p-5">
-              {/* Kategori tabs */}
-              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5">
-                <button
-                  onClick={() => setActiveCategory('aggregator')}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeCategory === 'aggregator'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Ödeme Aracıları ({aggregators.length})
-                </button>
-                <button
-                  onClick={() => setActiveCategory('bank')}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeCategory === 'bank'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Bankalar ({banks.length})
-                </button>
-              </div>
-
-              {/* Provider grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                {currentList.map((p) => (
-                  <button
-                    key={p.slug}
-                    type="button"
-                    onClick={() => handlePickProvider(p)}
-                    className="flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all text-left group"
-                  >
-                    <ProviderLogo logo={p.logo} name={p.name} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate leading-tight">{p.name}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-gray-300 group-hover:text-primary-500 shrink-0" />
-                  </button>
-                ))}
-              </div>
+          {/* Breadcrumb */}
+          {!isEdit && (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <span className={step === 'pick' ? 'text-primary-600 font-medium' : 'text-gray-400'}>
+                1. Sağlayıcı Seç
+              </span>
+              <ChevronRight size={14} />
+              <span className={step === 'form' ? 'text-primary-600 font-medium' : 'text-gray-400'}>
+                2. Bilgileri Gir
+              </span>
             </div>
           )}
+        </div>
+      </div>
 
-          {/* STEP 2 — Form */}
-          {step === 'form' && (isEdit || selectedProvider) && (
-            <form onSubmit={handleSubmit} id="pos-form" className="p-5 space-y-4">
-              {/* Seçili provider — sadece yeni ekleme modunda */}
+      <div className="max-w-5xl mx-auto px-6 py-8">
+
+        {/* STEP 1 — Provider seçimi */}
+        {step === 'pick' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Sağlayıcınızı seçin</h2>
+              <p className="text-gray-500 text-sm mt-1">
+                Sanal POS sağlayıcınızı seçerek API bilgilerinizi girin
+              </p>
+            </div>
+
+            {/* Kategori tabs */}
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
+              {[
+                { key: 'aggregator', label: `Ödeme Aracıları (${aggregators.length})` },
+                { key: 'bank', label: `Bankalar (${banks.length})` },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveCategory(key as any)}
+                  className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    activeCategory === key
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Provider grid — 4 columns */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {currentList.map((p) => (
+                <button
+                  key={p.slug}
+                  type="button"
+                  onClick={() => handlePickProvider(p)}
+                  className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-2xl hover:border-primary-400 hover:shadow-md transition-all text-left group"
+                >
+                  <ProviderLogo logo={p.logo} name={p.name} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
+                    <p className="text-xs text-gray-400 truncate capitalize">{p.slug}</p>
+                  </div>
+                  <ChevronRight size={15} className="text-gray-300 group-hover:text-primary-500 shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2 — Form */}
+        {step === 'form' && (isEdit || selectedProvider) && (
+          <div>
+            <div className="mb-6">
               {!isEdit && selectedProvider && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="flex items-center gap-3 mb-4">
                   <ProviderLogo logo={selectedProvider.logo} name={selectedProvider.name} />
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">{selectedProvider.name}</p>
-                    <p className="text-xs text-gray-400 capitalize">{selectedProvider.slug}</p>
+                    <h2 className="text-xl font-semibold text-gray-900">{selectedProvider.name}</h2>
+                    <p className="text-sm text-gray-400 capitalize">{selectedProvider.slug}</p>
                   </div>
                 </div>
               )}
+              {isEdit && (
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {editData?.display_name || 'POS Hesabı'} — Düzenle
+                </h2>
+              )}
+            </div>
 
-              <div>
-                <label className="label">Görünen Ad <span className="text-gray-400 font-normal">(opsiyonel)</span></label>
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="input"
-                  placeholder={`Örn: ${selectedProvider?.name ?? ''} Ana POS`}
-                />
-              </div>
+            <form onSubmit={handleSubmit} id="pos-form">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-              <div>
-                <label className="label">Ortam</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { val: 'production', label: 'Canlı (Production)' },
-                    { val: 'sandbox', label: 'Test (Sandbox)' },
-                  ].map(({ val, label }) => (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => setEnvironment(val)}
-                      className={`py-2 px-3 border rounded-lg text-sm font-medium transition-colors ${
-                        environment === val
-                          ? 'border-primary-500 bg-primary-50 text-primary-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                {/* Sol kolon — API bilgileri + temel ayarlar */}
+                <div className="space-y-5">
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+                    <h3 className="font-semibold text-gray-900 text-sm uppercase tracking-wide text-gray-400">
+                      Genel Bilgiler
+                    </h3>
+
+                    <div>
+                      <label className="label">
+                        Görünen Ad <span className="text-gray-400 font-normal">(opsiyonel)</span>
+                      </label>
+                      <input
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        className="input"
+                        placeholder={`Örn: ${selectedProvider?.name ?? 'Ana'} POS`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label">Ortam</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { val: 'production', label: '🟢 Canlı', sub: 'Production' },
+                          { val: 'sandbox', label: '🧪 Test', sub: 'Sandbox' },
+                        ].map(({ val, label, sub }) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setEnvironment(val)}
+                            className={`py-3 px-4 border rounded-xl text-sm font-medium transition-all text-left ${
+                              environment === val
+                                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                            }`}
+                          >
+                            <div>{label}</div>
+                            <div className="text-xs opacity-60 font-normal">{sub}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {!isEdit && selectedSchema.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+                      <h3 className="font-semibold text-xs uppercase tracking-wide text-gray-400">
+                        API Bilgileri
+                      </h3>
+                      {selectedSchema.map((field: any) => (
+                        <div key={field.key}>
+                          <label className="label">
+                            {field.label}
+                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                          </label>
+                          <input
+                            type={field.type === 'password' ? 'password' : 'text'}
+                            value={credentials[field.key] || ''}
+                            onChange={(e) =>
+                              setCredentials((prev) => ({ ...prev, [field.key]: e.target.value }))
+                            }
+                            className="input"
+                            required={field.required}
+                            placeholder={field.label}
+                            autoComplete={field.type === 'password' ? 'new-password' : 'off'}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              <div>
-                <label className="label">
-                  Taksit Komisyon Oranları{' '}
-                  <span className="text-gray-400 font-normal">(opsiyonel)</span>
-                </label>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Taksit</th>
-                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Banka Oranı (%)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[1, 2, 3, 6, 9, 12].map((n) => (
-                        <tr key={n} className="border-t border-gray-100">
-                          <td className="px-4 py-2 text-gray-700 text-sm">
+                {/* Sağ kolon — Komisyon oranları */}
+                <div>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                    <div className="mb-4">
+                      <h3 className="font-semibold text-gray-900">Taksit Komisyon Oranları</h3>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Bankanızın uyguladığı komisyon oranlarını taksit sayısına göre girin.
+                        Bu oranlar müşteriye yansıtma hesabında kullanılır.
+                      </p>
+                    </div>
+
+                    {/* 3 sütunlu grid */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {INSTALLMENT_RANGE.map((n) => (
+                        <div key={n} className="space-y-1">
+                          <label className="block text-xs font-medium text-gray-500 text-center">
                             {n === 1 ? 'Peşin' : `${n} Taksit`}
-                          </td>
-                          <td className="px-4 py-2">
+                          </label>
+                          <div className="relative">
                             <input
                               type="number"
                               step="0.01"
@@ -272,77 +345,56 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
                               max="100"
                               value={commissionRates[String(n)] ?? ''}
                               onChange={(e) =>
-                                setCommissionRates((prev) => ({ ...prev, [String(n)]: e.target.value }))
+                                setCommissionRates((prev) => ({
+                                  ...prev,
+                                  [String(n)]: e.target.value,
+                                }))
                               }
-                              className="input py-1 text-sm w-28"
-                              placeholder="0.00"
+                              className="input text-sm text-center pr-6"
+                              placeholder="—"
                             />
-                          </td>
-                        </tr>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
+                              %
+                            </span>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+
+                    <p className="text-xs text-gray-400 mt-3 border-t border-gray-100 pt-3">
+                      Boş bırakılan taksitler: oran hesaplanmaz, komisyon merchant üstlenir.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  Boş bırakılan taksitler için oran uygulanmaz. Müşteriye yansıtma için bu oranlar kullanılır.
-                </p>
               </div>
 
-              {!isEdit && (
-                <>
-                  <hr className="border-gray-100" />
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">API Bilgileri</p>
-
-                  {selectedSchema.map((field: any) => (
-                    <div key={field.key}>
-                      <label className="label">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                      </label>
-                      <input
-                        type={field.type === 'password' ? 'password' : 'text'}
-                        value={credentials[field.key] || ''}
-                        onChange={(e) => setCredentials((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                        className="input"
-                        required={field.required}
-                        placeholder={field.label}
-                        autoComplete={field.type === 'password' ? 'new-password' : 'off'}
-                      />
-                    </div>
-                  ))}
-                </>
-              )}
-
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                <div className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
                   {error}
                 </div>
               )}
-            </form>
-          )}
-        </div>
 
-        {/* Footer — sadece form adımında göster */}
-        {step === 'form' && (
-          <div className="p-5 border-t border-gray-100 flex gap-3 shrink-0">
-            {!isEdit && (
-              <button type="button" onClick={() => { setStep('pick'); setSelectedProvider(null) }} className="btn-secondary flex-1">
-                Geri
-              </button>
-            )}
-            {isEdit && (
-              <button type="button" onClick={onClose} className="btn-secondary flex-1">
-                İptal
-              </button>
-            )}
-            <button
-              type="submit"
-              form="pos-form"
-              disabled={createMutation.isPending}
-              className="btn-primary flex-1"
-            >
-              {createMutation.isPending ? (isEdit ? 'Güncelleniyor...' : 'Ekleniyor...') : (isEdit ? 'Kaydet' : 'POS Ekle')}
-            </button>
+              {/* Footer butonları */}
+              <div className="flex gap-3 mt-6 justify-end">
+                <button type="button" onClick={onClose} className="btn-secondary px-8">
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending}
+                  className="btn-primary px-8 flex items-center gap-2"
+                >
+                  {createMutation.isPending ? (
+                    isEdit ? 'Güncelleniyor…' : 'Ekleniyor…'
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      {isEdit ? 'Değişiklikleri Kaydet' : 'POS Hesabı Ekle'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         )}
       </div>
