@@ -5,14 +5,14 @@ import {
 import { clsx } from 'clsx'
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { to: '/pos-accounts', icon: CreditCard, label: 'POS Hesapları' },
-  { to: '/transactions', icon: List, label: 'İşlemler' },
-  { to: '/payment-links', icon: Link2, label: 'Ödeme Linkleri' },
-  { to: '/widgets', icon: Code2, label: 'Embed Widget' },
-  { to: '/analytics', icon: BarChart3, label: 'Analitik' },
-  { to: '/api-keys', icon: KeyRound, label: 'API Anahtarları' },
-  { to: '/webhook-logs', icon: Webhook, label: 'Webhook Logları' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', exact: true },
+  { to: '/dashboard/pos-accounts', icon: CreditCard, label: 'POS Hesapları' },
+  { to: '/dashboard/transactions', icon: List, label: 'İşlemler' },
+  { to: '/dashboard/payment-links', icon: Link2, label: 'Ödeme Linkleri' },
+  { to: '/dashboard/widgets', icon: Code2, label: 'Embed Widget' },
+  { to: '/dashboard/analytics', icon: BarChart3, label: 'Analitik' },
+  { to: '/dashboard/api-keys', icon: KeyRound, label: 'API Anahtarları' },
+  { to: '/dashboard/webhook-logs', icon: Webhook, label: 'Webhook Logları' },
 ]
 
 export default function Sidebar() {
@@ -53,7 +53,7 @@ export default function Sidebar() {
       {/* Footer */}
       <div className="p-4 border-t border-gray-100">
         <NavLink
-          to="/settings"
+          to="/dashboard/settings"
           className={({ isActive }) =>
             clsx(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',

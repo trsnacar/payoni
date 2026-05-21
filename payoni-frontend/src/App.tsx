@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
+import LandingPage from '@/pages/landing/LandingPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
 import AppShell from '@/components/layout/AppShell'
@@ -23,11 +24,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function HomeRoute() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  return <LandingPage />
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
     <BrowserRouter>
       <Routes>
+        {/* Landing */}
+        <Route path="/" element={<HomeRoute />} />
+
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -38,7 +48,7 @@ export default function App() {
 
         {/* Dashboard (korumalı) */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <AppShell />

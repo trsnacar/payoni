@@ -27,7 +27,7 @@ export default function RegisterPage() {
     try {
       const res = await authApi.register(data)
       setToken(res.access_token)
-      navigate('/')
+      navigate('/dashboard')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Kayıt başarısız')
     } finally {

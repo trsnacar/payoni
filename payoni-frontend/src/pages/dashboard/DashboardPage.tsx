@@ -318,7 +318,7 @@ export default function DashboardPage() {
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900">Son İşlemler</h2>
           <Link
-            to="/transactions"
+            to="/dashboard/transactions"
             className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium"
           >
             Tüm işlemleri gör

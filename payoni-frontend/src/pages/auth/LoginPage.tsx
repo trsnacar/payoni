@@ -23,7 +23,7 @@ export default function LoginPage() {
     try {
       const res = await authApi.login(data)
       setToken(res.access_token)
-      navigate('/')
+      navigate('/dashboard')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Giriş başarısız')
     } finally {
