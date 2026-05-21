@@ -11,6 +11,7 @@ class PosAccountCreate(BaseModel):
     credentials: dict  # provider'a özel credential alanları
     environment: str = "production"
     is_default: bool = False
+    commission_rates: Optional[dict[str, float]] = None
 
 
 class PosAccountUpdate(BaseModel):
@@ -19,6 +20,7 @@ class PosAccountUpdate(BaseModel):
     environment: Optional[str] = None
     is_active: Optional[bool] = None
     is_default: Optional[bool] = None
+    commission_rates: Optional[dict[str, float]] = None
 
 
 class PosAccountResponse(BaseModel):
@@ -30,6 +32,7 @@ class PosAccountResponse(BaseModel):
     environment: str
     last_tested_at: Optional[datetime]
     last_test_success: Optional[bool]
+    commission_rates: Optional[dict] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

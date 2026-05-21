@@ -32,6 +32,7 @@ class PaymentLink(Base, UUIDMixin, TimestampMixin):
     )
 
     allow_installments: Mapped[bool] = mapped_column(Boolean, default=True)
+    commission_passthrough: Mapped[bool] = mapped_column(Boolean, default=False)
     max_uses: Mapped[Optional[int]] = mapped_column(Integer)
     use_count: Mapped[int] = mapped_column(Integer, default=0)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))

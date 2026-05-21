@@ -28,6 +28,7 @@ class Widget(Base, UUIDMixin, TimestampMixin):
     # NULL = embed parametresinden alınır
     amount: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2))
     allow_installments: Mapped[bool] = mapped_column(Boolean, default=True)
+    commission_passthrough: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Taksit yönlendirme kuralları

@@ -34,6 +34,7 @@ class ChargeRequest(BaseModel):
     description: Optional[str] = None
     use_3d: bool = False
     callback_url: Optional[str] = None  # 3D için zorunlu
+    commission_passthrough: bool = False  # True ise amount zaten gross tutardır
 
 
 class ThreeDCompleteRequest(BaseModel):

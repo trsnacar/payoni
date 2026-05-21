@@ -17,6 +17,7 @@ class WidgetCreate(BaseModel):
     theme: dict = {}
     amount: Optional[Decimal] = None
     allow_installments: bool = True
+    commission_passthrough: bool = False
     installment_rules: list[InstallmentRule] = []
 
 
@@ -28,6 +29,7 @@ class WidgetUpdate(BaseModel):
     amount: Optional[Decimal] = None
     is_active: Optional[bool] = None
     allow_installments: Optional[bool] = None
+    commission_passthrough: Optional[bool] = None
     installment_rules: Optional[list[InstallmentRule]] = None
 
 
@@ -39,6 +41,7 @@ class WidgetResponse(BaseModel):
     theme: Optional[dict]
     amount: Optional[Decimal]
     allow_installments: bool
+    commission_passthrough: bool
     is_active: bool
     installment_rules: Optional[list[dict]]
 

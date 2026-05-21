@@ -9,6 +9,7 @@ export interface PosAccount {
   environment: string
   last_tested_at?: string
   last_test_success?: boolean
+  commission_rates?: Record<string, number>
   created_at: string
 }
 
@@ -18,6 +19,7 @@ export interface PosAccountCreate {
   credentials: Record<string, string>
   environment?: string
   is_default?: boolean
+  commission_rates?: Record<string, number>
 }
 
 export interface Provider {

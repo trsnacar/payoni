@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Code2, Copy, Trash2, Edit2, X, Info, Building2, Users, Check } from 'lucide-react'
+import { Plus, Code2, Copy, Trash2, Edit2, X, Info, Building2, Users, Check, ArrowLeft } from 'lucide-react'
 import apiClient from '@/api/client'
 import { posAccountsApi, PosAccount } from '@/api/posAccounts'
 
@@ -26,7 +26,7 @@ interface WidgetSnippet {
   snippet: string
 }
 
-const INSTALLMENT_OPTIONS = [1, 2, 3, 6, 9, 12]
+const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1)
 
 export default function WidgetsPage() {
   const queryClient = useQueryClient()
@@ -306,191 +306,230 @@ function WidgetFormModal({ activePOS, existing, onClose }: WidgetFormModalProps)
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <h2 className="font-semibold text-lg">{existing ? 'Widget Düzenle' : 'Widget Oluştur'}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X size={18} />
+    <div className="fixed inset-0 bg-gray-50 z-50 overflow-y-auto">
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft size={18} />
+            <span className="text-sm font-medium">Geri Dön</span>
           </button>
+          <div className="w-px h-5 bg-gray-200" />
+          <h1 className="text-base font-semibold text-gray-900">
+            {existing ? 'Widget Düzenle' : 'Widget Oluştur'}
+          </h1>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {existing ? 'Widget ayarlarını güncelleyin' : 'Sitenize gömülü ödeme widgetı oluşturun'}
+          </h2>
+          <p className="text-gray-500 text-sm mt-1">
+            Widget oluşturduktan sonra HTML snippet'ini sitenize yapıştırın.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Temel bilgiler */}
-          <div>
-            <label className="label">Widget Adı <span className="text-red-500">*</span></label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className="input" required placeholder="Örn: Ürün Ödeme Formu" />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          <div>
-            <label className="label">Sabit Tutar (opsiyonel)</label>
-            <input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              type="number"
-              step="0.01"
-              className="input"
-              placeholder="Boş = tutar embed parametresinden alınır"
-            />
-          </div>
+            {/* Sol kolon */}
+            <div className="space-y-5">
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Temel Bilgiler</h3>
 
-          {/* Varsayılan POS */}
-          <div>
-            <label className="label">Varsayılan POS</label>
-            <select value={preferredPOS} onChange={(e) => setPreferredPOS(e.target.value)} className="input">
-              <option value="">Merchant varsayılanı</option>
-              {activePOS.map((pos) => (
-                <option key={pos.id} value={pos.id}>
-                  {pos.display_name || pos.provider_slug} ({pos.environment})
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-400 mt-1">Kurala uymayan işlemler bu POS'a yönlenir</p>
-          </div>
+                <div>
+                  <label className="label">Widget Adı <span className="text-red-500">*</span></label>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="input"
+                    required
+                    placeholder="Örn: Ürün Ödeme Formu"
+                  />
+                </div>
 
-          {/* Taksit yönlendirme kuralları */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="label mb-0">Taksit Yönlendirme Kuralları</label>
-              <button
-                type="button"
-                onClick={addRule}
-                disabled={!activePOS.length}
-                className="btn-secondary text-xs flex items-center gap-1"
-              >
-                <Plus size={12} />
-                Kural Ekle
-              </button>
-            </div>
+                <div>
+                  <label className="label">Sabit Tutar <span className="text-gray-400 font-normal">(opsiyonel)</span></label>
+                  <input
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    className="input"
+                    placeholder="Boş = embed parametresinden alınır"
+                  />
+                </div>
 
-            {rules.length === 0 ? (
-              <p className="text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg p-3 text-center">
-                Kural eklenmemiş — tüm ödemeler varsayılan POS'a gider
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {rules.map((rule, idx) => (
-                  <div key={idx} className="border border-gray-200 rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <select
-                        value={rule.pos_account_id}
-                        onChange={(e) => updateRulePOS(idx, e.target.value)}
-                        className="input text-xs flex-1 mr-2"
-                      >
-                        {activePOS.map((pos) => (
-                          <option key={pos.id} value={pos.id}>
-                            {pos.display_name || pos.provider_slug} ({pos.environment})
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => removeRule(idx)}
-                        className="p-1 text-gray-400 hover:text-red-500 rounded"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Bu POS'a yönlendirilecek taksitler:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {INSTALLMENT_OPTIONS.map((n) => (
-                          <label key={n} className="flex items-center gap-1 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={rule.installments.includes(n)}
-                              onChange={() => toggleRuleInstallment(idx, n)}
-                              className="w-3.5 h-3.5"
-                            />
-                            <span className="text-xs text-gray-700">{n === 1 ? 'Peşin' : `${n} taksit`}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                <div>
+                  <label className="label">Varsayılan POS</label>
+                  <select value={preferredPOS} onChange={(e) => setPreferredPOS(e.target.value)} className="input">
+                    <option value="">Merchant varsayılanı</option>
+                    {activePOS.map((pos) => (
+                      <option key={pos.id} value={pos.id}>
+                        {pos.display_name || pos.provider_slug} ({pos.environment})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">İzin Verilen Domain'ler</label>
+                  <textarea
+                    value={origins}
+                    onChange={(e) => setOrigins(e.target.value)}
+                    className="input min-h-[80px] resize-none text-xs font-mono"
+                    placeholder={'https://siteniz.com\nhttps://www.siteniz.com'}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Boş bırakırsanız tüm origin'ler kabul edilir.
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Taksit izni */}
-          <label className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors">
-            <input
-              type="checkbox"
-              checked={allowInstallments}
-              onChange={(e) => setAllowInstallments(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <div>
-              <span className="text-sm font-medium text-gray-700">Müşteriye taksit seçimi sun</span>
-              <p className="text-xs text-gray-400">Müşteri ödeme sırasında taksit sayısı seçebilsin</p>
             </div>
-          </label>
 
-          {/* Komisyon kart seçimi */}
-          <div>
-            <label className="label mb-2">Banka Komisyonu Karşılama</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setCommissionPassthrough(false)}
-                className={`flex items-start gap-3 p-4 border-2 rounded-xl text-left transition-all ${
-                  !commissionPassthrough
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${!commissionPassthrough ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'}`}>
-                  <Building2 size={15} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">Üye İş Yeri Karşılar</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Müşteri net tutarı öder</p>
-                </div>
-                {!commissionPassthrough && <Check size={15} className="text-primary-600 shrink-0 mt-0.5" />}
-              </button>
+            {/* Sağ kolon */}
+            <div className="space-y-5">
+              {/* Ödeme ayarları */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Ödeme Ayarları</h3>
 
-              <button
-                type="button"
-                onClick={() => setCommissionPassthrough(true)}
-                className={`flex items-start gap-3 p-4 border-2 rounded-xl text-left transition-all ${
-                  commissionPassthrough
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${commissionPassthrough ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'}`}>
-                  <Users size={15} />
+                <label className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={allowInstallments}
+                    onChange={(e) => setAllowInstallments(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Müşteriye taksit seçimi sun</span>
+                    <p className="text-xs text-gray-400">Müşteri ödeme sırasında taksit sayısı seçebilsin</p>
+                  </div>
+                </label>
+
+                <div>
+                  <label className="label mb-2">Banka Komisyonu Karşılama</label>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { value: false, icon: Building2, title: 'Üye İş Yeri Karşılar', desc: 'Müşteri daima net tutarı öder' },
+                      { value: true,  icon: Users,     title: 'Müşteriye Yansıt',     desc: 'Gross tutar müşteriye gösterilir' },
+                    ].map(({ value: val, icon: Icon, title, desc }) => {
+                      const active = commissionPassthrough === val
+                      return (
+                        <button
+                          key={String(val)}
+                          type="button"
+                          onClick={() => setCommissionPassthrough(val)}
+                          className={`flex items-center gap-3 p-4 border-2 rounded-xl text-left transition-all ${
+                            active ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${active ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400'}`}>
+                            <Icon size={15} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-900">{title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                          </div>
+                          {active && <Check size={15} className="text-primary-600 shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">Müşteriye Yansıt</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Gross tutar müşteriye gösterilir</p>
+              </div>
+
+              {/* Taksit yönlendirme kuralları */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Taksit → POS Yönlendirme Kuralları
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={addRule}
+                    disabled={!activePOS.length}
+                    className="btn-secondary text-xs flex items-center gap-1"
+                  >
+                    <Plus size={12} />
+                    Kural Ekle
+                  </button>
                 </div>
-                {commissionPassthrough && <Check size={15} className="text-primary-600 shrink-0 mt-0.5" />}
-              </button>
+
+                {rules.length === 0 ? (
+                  <p className="text-xs text-gray-400 border border-dashed border-gray-200 rounded-lg p-3 text-center">
+                    Kural eklenmemiş — tüm ödemeler varsayılan POS'a gider
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {rules.map((rule, idx) => (
+                      <div key={idx} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={rule.pos_account_id}
+                            onChange={(e) => updateRulePOS(idx, e.target.value)}
+                            className="input text-xs flex-1"
+                          >
+                            {activePOS.map((pos) => (
+                              <option key={pos.id} value={pos.id}>
+                                {pos.display_name || pos.provider_slug} ({pos.environment})
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => removeRule(idx)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-2">Taksitler:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {INSTALLMENT_OPTIONS.map((n) => {
+                              const checked = rule.installments.includes(n)
+                              return (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  onClick={() => toggleRuleInstallment(idx, n)}
+                                  className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                                    checked
+                                      ? 'bg-primary-600 text-white border-primary-600'
+                                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                  }`}
+                                >
+                                  {n === 1 ? 'Peşin' : `${n}`}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Güvenlik — izin verilen originler */}
-          <div>
-            <label className="label">İzin Verilen Domain'ler</label>
-            <textarea
-              value={origins}
-              onChange={(e) => setOrigins(e.target.value)}
-              className="input min-h-[72px] resize-none text-xs font-mono"
-              placeholder={'https://siteniz.com\nhttps://www.siteniz.com'}
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Güvenlik: sadece bu domain'lerden gelen ödeme istekleri kabul edilir. Boş bırakırsanız tüm origin'ler kabul edilir.
-            </p>
-          </div>
+          {error && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+              {error}
+            </div>
+          )}
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
-
-          <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="btn-secondary flex-1">İptal</button>
-            <button type="submit" disabled={saveMutation.isPending} className="btn-primary flex-1">
-              {saveMutation.isPending ? 'Kaydediliyor...' : existing ? 'Güncelle' : 'Oluştur'}
+          <div className="flex gap-3 mt-6 justify-end">
+            <button type="button" onClick={onClose} className="btn-secondary px-8">İptal</button>
+            <button type="submit" disabled={saveMutation.isPending} className="btn-primary px-8 flex items-center gap-2">
+              {saveMutation.isPending ? 'Kaydediliyor…' : (
+                <><Check size={16} />{existing ? 'Değişiklikleri Kaydet' : 'Widget Oluştur'}</>
+              )}
             </button>
           </div>
         </form>

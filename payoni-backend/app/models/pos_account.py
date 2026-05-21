@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDMixin
@@ -28,6 +28,9 @@ class PosAccount(Base, UUIDMixin, TimestampMixin):
 
     last_tested_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     last_test_success: Mapped[Optional[bool]] = mapped_column(Boolean)
+
+    # Taksit başına komisyon oranları: {"1": 0.0, "2": 1.5, "3": 2.0, "6": 2.5, "9": 3.0, "12": 24.8}
+    commission_rates: Mapped[Optional[dict]] = mapped_column(JSONB, default={})
 
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 

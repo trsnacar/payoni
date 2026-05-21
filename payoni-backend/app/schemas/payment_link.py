@@ -15,6 +15,7 @@ class PaymentLinkCreate(BaseModel):
     max_amount: Optional[Decimal] = None
     preferred_pos_id: Optional[UUID] = None
     allow_installments: bool = True
+    commission_passthrough: bool = False
     max_uses: Optional[int] = None
     expires_at: Optional[datetime] = None
     redirect_url: Optional[str] = None
@@ -40,6 +41,7 @@ class PaymentLinkResponse(BaseModel):
     min_amount: Optional[Decimal]
     max_amount: Optional[Decimal]
     allow_installments: bool
+    commission_passthrough: bool
     max_uses: Optional[int]
     use_count: int
     expires_at: Optional[datetime]
@@ -61,6 +63,8 @@ class PublicPaymentLinkResponse(BaseModel):
     min_amount: Optional[Decimal]
     max_amount: Optional[Decimal]
     allow_installments: bool
+    commission_passthrough: bool
+    preferred_pos_id: Optional[UUID] = None
     merchant_name: str
     custom_fields: Optional[list]
     is_available: bool

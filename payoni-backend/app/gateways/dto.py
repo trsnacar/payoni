@@ -99,6 +99,9 @@ class InstallmentOption(BaseModel):
     monthly_amount: Decimal
     total_amount: Decimal
     commission_rate: Optional[Decimal] = None
+    # Yansıtma aktifse müşterinin ödemesi gereken gross tutar (net / (1 - rate/100))
+    gross_amount: Optional[Decimal] = None
+    gross_monthly: Optional[Decimal] = None
 
 
 class InstallmentQueryResponse(BaseModel):

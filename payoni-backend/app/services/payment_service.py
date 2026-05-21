@@ -53,6 +53,20 @@ class PaymentService:
         credentials = decrypt_credentials(pos.credentials_enc, pos.iv)
         gateway = GatewayFactory.create(pos.provider_slug, credentials, pos.environment)
 
+        # Komisyon metadata hesapla
+        commission_meta: dict = {}
+        pos_rates: dict = pos.commission_rates or {}
+        installment_key = str(req.installments)
+        if pos_rates and installment_key in pos_rates:
+            rate = float(pos_rates[installment_key])
+            commission_meta["commission_rate"] = rate
+            commission_meta["commission_passthrough"] = bool(getattr(req, "commission_passthrough", False))
+            if rate > 0:
+                gross = float(req.amount) / (1 - rate / 100)
+                commission_meta["gross_amount"] = round(gross, 2)
+                commission_meta["net_amount"] = float(req.amount)
+                commission_meta["commission_amount"] = round(gross - float(req.amount), 2)
+
         # Transaction oluştur
         tx = Transaction(
             id=uuid.uuid4(),
@@ -73,6 +87,7 @@ class PaymentService:
             customer_ip=customer_ip or req.customer.ip,
             description=req.description,
             status="pending",
+            metadata_=commission_meta if commission_meta else None,
         )
         self.db.add(tx)
         await self.db.flush()  # ID almak için
@@ -203,12 +218,33 @@ class PaymentService:
     async def installment_query(
         self, merchant: Merchant, bin_number: str, amount: float, pos_account_id: Optional[uuid.UUID] = None
     ):
+        from app.gateways.dto import InstallmentOption
         pos = await self._resolve_pos(merchant.id, pos_account_id)
         credentials = decrypt_credentials(pos.credentials_enc, pos.iv)
         gateway = GatewayFactory.create(pos.provider_slug, credentials, pos.environment)
-        return await gateway.installment_query(
+        result = await gateway.installment_query(
             InstallmentQueryDTO(bin_number=bin_number, amount=Decimal(str(amount)))
         )
+
+        # POS'ta tanımlı komisyon oranları varsa gateway'den geleni override et ve gross tutarları hesapla
+        pos_rates: dict = pos.commission_rates or {}
+        if pos_rates:
+            net = Decimal(str(amount))
+            enriched = []
+            for opt in result.installments:
+                rate_str = str(opt.count)
+                if rate_str in pos_rates:
+                    rate = Decimal(str(pos_rates[rate_str]))
+                    opt = opt.model_copy(update={"commission_rate": rate})
+                if opt.commission_rate is not None and opt.commission_rate > 0:
+                    divisor = Decimal("1") - opt.commission_rate / Decimal("100")
+                    gross = (net / divisor).quantize(Decimal("0.01"))
+                    gross_monthly = (gross / opt.count).quantize(Decimal("0.01"))
+                    opt = opt.model_copy(update={"gross_amount": gross, "gross_monthly": gross_monthly})
+                enriched.append(opt)
+            result = result.model_copy(update={"installments": enriched})
+
+        return result
 
     async def _resolve_pos(self, merchant_id: uuid.UUID, pos_account_id: Optional[uuid.UUID]) -> PosAccount:
         if pos_account_id:

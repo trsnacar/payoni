@@ -53,6 +53,7 @@ async def create_pos_account(
         iv=iv,
         environment=body.environment,
         is_default=body.is_default,
+        commission_rates=body.commission_rates or {},
     )
 
     if body.is_default:
@@ -109,6 +110,8 @@ async def update_pos_account(
         pos.is_active = body.is_active
     if body.is_default is not None:
         pos.is_default = body.is_default
+    if body.commission_rates is not None:
+        pos.commission_rates = body.commission_rates
 
     await db.commit()
     await db.refresh(pos)
