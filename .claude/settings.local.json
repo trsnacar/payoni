@@ -39,7 +39,19 @@
       "Bash(cmdkey /list)",
       "Bash(findstr \"github\")",
       "Bash(gh repo *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(docker --version)",
+      "Bash(docker info *)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(Start-Sleep 3)",
+      "PowerShell(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\"; Start-Sleep -Seconds 5; Write-Output \"Başlatıldı, bekleniyor...\")",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(curl -s http://localhost:8000/docs)",
+      "Read(//tmp/**)",
+      "Bash(curl *)"
     ]
   }
 }
