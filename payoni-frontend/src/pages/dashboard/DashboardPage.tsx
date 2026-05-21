@@ -5,15 +5,16 @@ import { analyticsApi } from '@/api/analytics'
 import { transactionsApi } from '@/api/transactions'
 import { RevenueChart } from '@/components/charts/RevenueChart'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { SkeletonCard, SkeletonTable } from '@/components/shared/SkeletonCard'
 import { formatCurrency, formatDate } from '@/utils/format'
 
 export default function DashboardPage() {
-  const { data: summary } = useQuery({
+  const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['analytics-summary'],
     queryFn: () => analyticsApi.getSummary(30),
   })
 
-  const { data: recent } = useQuery({
+  const { data: recent, isLoading: recentLoading } = useQuery({
     queryKey: ['transactions-recent'],
     queryFn: () => transactionsApi.list({ per_page: 5 }),
   })
@@ -58,19 +59,21 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {stats.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="card p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500">{label}</p>
-                <p className="text-2xl font-semibold text-gray-900 mt-1">{value}</p>
+        {summaryLoading
+          ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} lines={2} />)
+          : stats.map(({ label, value, icon: Icon, color, bg }) => (
+              <div key={label} className="card p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">{label}</p>
+                    <p className="text-2xl font-semibold text-gray-900 mt-1">{value}</p>
+                  </div>
+                  <div className={`${bg} p-2.5 rounded-xl`}>
+                    <Icon className={color} size={20} />
+                  </div>
+                </div>
               </div>
-              <div className={`${bg} p-2.5 rounded-xl`}>
-                <Icon className={color} size={20} />
-              </div>
-            </div>
-          </div>
-        ))}
+            ))}
       </div>
 
       {/* Gelir grafiği */}
@@ -89,7 +92,20 @@ export default function DashboardPage() {
           </Link>
         </div>
         <div className="divide-y divide-gray-50">
-          {recent?.items?.map((tx) => (
+          {recentLoading && (
+            <div className="px-6 py-4 space-y-3 animate-pulse">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex justify-between">
+                  <div className="space-y-1.5">
+                    <div className="h-3 bg-gray-200 rounded w-32" />
+                    <div className="h-2.5 bg-gray-100 rounded w-24" />
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded w-20" />
+                </div>
+              ))}
+            </div>
+          )}
+          {!recentLoading && recent?.items?.map((tx) => (
             <div key={tx.id} className="px-6 py-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-900">
@@ -105,7 +121,7 @@ export default function DashboardPage() {
               </div>
             </div>
           ))}
-          {!recent?.items?.length && (
+          {!recentLoading && !recent?.items?.length && (
             <div className="px-6 py-8 text-center text-sm text-gray-400">
               Henüz işlem bulunmuyor
             </div>

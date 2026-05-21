@@ -29,3 +29,8 @@ class MerchantUpdateRequest(BaseModel):
 class WebhookSettingsRequest(BaseModel):
     webhook_url: str
     webhook_secret: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str

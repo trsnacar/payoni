@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Download, Search, X } from 'lucide-react'
 import { transactionsApi } from '@/api/transactions'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { SkeletonTable } from '@/components/shared/SkeletonCard'
 import { formatCurrency, formatDate } from '@/utils/format'
 import { TransactionDetailModal } from './TransactionDetailModal'
 
@@ -100,6 +101,9 @@ export default function TransactionsPage() {
       </div>
 
       {/* Tablo */}
+      {isLoading ? (
+        <SkeletonTable rows={8} />
+      ) : (
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -112,13 +116,6 @@ export default function TransactionsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {isLoading && (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
-                  Yükleniyor...
-                </td>
-              </tr>
-            )}
             {data?.items?.map((tx) => (
               <tr
                 key={tx.id}
@@ -148,7 +145,7 @@ export default function TransactionsPage() {
                 </td>
               </tr>
             ))}
-            {!isLoading && !data?.items?.length && (
+            {!data?.items?.length && (
               <tr>
                 <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
                   İşlem bulunamadı
@@ -183,6 +180,7 @@ export default function TransactionsPage() {
           </div>
         )}
       </div>
+      )}
 
       <TransactionDetailModal
         transactionId={selectedTxId}

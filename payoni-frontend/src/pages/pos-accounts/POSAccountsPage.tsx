@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, CheckCircle, XCircle, Star, Trash2, TestTube, Pencil } from 'lucide-react'
 import { posAccountsApi, type PosAccount } from '@/api/posAccounts'
 import { formatDate } from '@/utils/format'
+import { SkeletonCard } from '@/components/shared/SkeletonCard'
 import AddPOSAccountModal from './AddPOSAccountModal'
 
 export default function POSAccountsPage() {
@@ -62,9 +63,9 @@ export default function POSAccountsPage() {
         </div>
       )}
 
-      {isLoading && (
-        <div className="card p-8 text-center text-gray-400">Yükleniyor...</div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {isLoading && Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} lines={3} />)}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {accounts.map((account) => (

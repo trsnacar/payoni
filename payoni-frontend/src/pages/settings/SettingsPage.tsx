@@ -15,11 +15,18 @@ interface WebhookForm {
   webhook_secret: string
 }
 
+interface PasswordForm {
+  current_password: string
+  new_password: string
+  confirm_password: string
+}
+
 export default function SettingsPage() {
   const queryClient = useQueryClient()
   const setMerchant = useAuthStore((s) => s.setMerchant)
   const [profileSuccess, setProfileSuccess] = useState(false)
   const [webhookSuccess, setWebhookSuccess] = useState(false)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
 
   const { data: me } = useQuery<Merchant>({
     queryKey: ['merchant-me'],
@@ -59,6 +66,17 @@ export default function SettingsPage() {
       queryClient.setQueryData(['merchant-me'], updated)
       setWebhookSuccess(true)
       setTimeout(() => setWebhookSuccess(false), 3000)
+    },
+  })
+
+  const passwordForm = useForm<PasswordForm>()
+  const passwordMutation = useMutation({
+    mutationFn: (data: PasswordForm) =>
+      merchantsApi.changePassword(data.current_password, data.new_password),
+    onSuccess: () => {
+      passwordForm.reset()
+      setPasswordSuccess(true)
+      setTimeout(() => setPasswordSuccess(false), 3000)
     },
   })
 
@@ -158,6 +176,68 @@ export default function SettingsPage() {
             </button>
             {webhookSuccess && (
               <span className="text-sm text-green-600">Webhook ayarları güncellendi</span>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Şifre Değiştir */}
+      <div className="card p-6">
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Şifre Değiştir</h2>
+        <form
+          onSubmit={passwordForm.handleSubmit((d) => {
+            if (d.new_password !== d.confirm_password) {
+              passwordForm.setError('confirm_password', { message: 'Şifreler eşleşmiyor' })
+              return
+            }
+            passwordMutation.mutate(d)
+          })}
+          className="space-y-4"
+        >
+          <div>
+            <label className="label">Mevcut Şifre</label>
+            <input
+              {...passwordForm.register('current_password', { required: 'Zorunlu alan' })}
+              className="input"
+              type="password"
+              placeholder="Mevcut şifreniz"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Yeni Şifre</label>
+              <input
+                {...passwordForm.register('new_password', { required: 'Zorunlu alan', minLength: { value: 8, message: 'En az 8 karakter' } })}
+                className="input"
+                type="password"
+                placeholder="En az 8 karakter"
+              />
+              {passwordForm.formState.errors.new_password && (
+                <p className="text-xs text-red-500 mt-1">{passwordForm.formState.errors.new_password.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="label">Şifre Tekrar</label>
+              <input
+                {...passwordForm.register('confirm_password', { required: 'Zorunlu alan' })}
+                className="input"
+                type="password"
+                placeholder="Şifreyi tekrar girin"
+              />
+              {passwordForm.formState.errors.confirm_password && (
+                <p className="text-xs text-red-500 mt-1">{passwordForm.formState.errors.confirm_password.message}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={passwordMutation.isPending} className="btn-primary">
+              {passwordMutation.isPending ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
+            </button>
+            {passwordSuccess && <span className="text-sm text-green-600">Şifre güncellendi</span>}
+            {passwordMutation.isError && (
+              <span className="text-sm text-red-600">
+                {(passwordMutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Hata oluştu'}
+              </span>
             )}
           </div>
         </form>

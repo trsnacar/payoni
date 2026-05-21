@@ -21,4 +21,7 @@ export const merchantsApi = {
 
   updateWebhook: (webhook_url: string, webhook_secret: string) =>
     apiClient.put<Merchant>('/merchants/me/webhook', { webhook_url, webhook_secret }).then((r) => r.data),
+
+  changePassword: (current_password: string, new_password: string) =>
+    apiClient.put<{ message: string }>('/merchants/me/password', { current_password, new_password }).then((r) => r.data),
 }

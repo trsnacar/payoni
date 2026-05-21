@@ -1,6 +1,9 @@
 """
 Provider'dan gelen webhook'ları normalleştirir ve 3D callback'lerini tamamlar.
 """
+import hashlib
+import hmac
+import base64
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,12 +20,48 @@ _NESTPAY_PROVIDERS = {
 }
 
 
+def verify_signature(provider_slug: str, raw_body: bytes | str, headers: dict, pos_credentials: dict | None = None) -> bool:
+    """Provider inbound webhook imzasını doğrular. Doğrulama başarısızsa False döner."""
+    raw = raw_body if isinstance(raw_body, bytes) else raw_body.encode()
+
+    if provider_slug == "iyzico":
+        # iyzico: X-IYZ-SIGNATURE header — HMAC-SHA256(secret_key, raw_body) Base64
+        secret = (pos_credentials or {}).get("secret_key", "")
+        if not secret:
+            return True  # Credential yoksa (provider test) geç
+        expected_sig = base64.b64encode(
+            hmac.new(secret.encode(), raw, hashlib.sha256).digest()
+        ).decode()
+        received_sig = headers.get("x-iyz-signature", headers.get("X-IYZ-SIGNATURE", ""))
+        return hmac.compare_digest(expected_sig, received_sig) if received_sig else False
+
+    if provider_slug == "paytr":
+        # PayTR: payload içindeki hash alanı — SHA256(merchant_id + merchant_oid + status + merchant_salt)
+        # TODO: PayTR credentials ile tam doğrulama
+        return True
+
+    # Diğer provider'lar için imza doğrulama henüz eklenmedi
+    # TODO: morpara, sipay, paratika vb. için HMAC doğrulama ekle
+    return True
+
+
 class WebhookService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def handle_inbound(self, provider_slug: str, payload: dict, raw_body: str = ""):
-        """Provider'dan gelen inbound webhook'ı işler."""
+    async def handle_inbound(
+        self,
+        provider_slug: str,
+        payload: dict,
+        raw_body: str = "",
+        headers: dict | None = None,
+        verified: bool = True,
+    ):
+        """Provider'dan gelen inbound webhook'ı işler. verified=False ise 403 raise eder."""
+        if not verified:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=403, detail="Webhook imza doğrulaması başarısız")
+
         normalized = self._normalize(provider_slug, payload)
         transaction = await self._find_transaction(provider_slug, payload)
 

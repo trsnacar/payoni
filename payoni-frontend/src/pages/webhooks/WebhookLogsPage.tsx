@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { webhooksApi, WebhookLog } from '@/api/webhooks'
 import { formatDate } from '@/utils/format'
+import { RefreshCw } from 'lucide-react'
 
 const DIRECTION_LABELS = {
   inbound: { label: 'Gelen (Provider)', cls: 'badge-pending' },
@@ -18,13 +19,21 @@ function StatusChip({ status }: { status?: number }) {
   )
 }
 
-function LogRow({ log, onExpand }: { log: WebhookLog; onExpand: (log: WebhookLog) => void }) {
+function LogRow({
+  log,
+  onExpand,
+  onRetry,
+  isRetrying,
+}: {
+  log: WebhookLog
+  onExpand: (log: WebhookLog) => void
+  onRetry: (logId: string) => void
+  isRetrying: boolean
+}) {
   const dir = DIRECTION_LABELS[log.direction]
+  const isFailed = log.direction === 'outbound' && log.http_status && (log.http_status < 200 || log.http_status >= 300)
   return (
-    <tr
-      className="hover:bg-gray-50 cursor-pointer"
-      onClick={() => onExpand(log)}
-    >
+    <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => onExpand(log)}>
       <td className="px-4 py-3 text-xs text-gray-400 font-mono">
         {formatDate(log.created_at)}
       </td>
@@ -42,6 +51,19 @@ function LogRow({ log, onExpand }: { log: WebhookLog; onExpand: (log: WebhookLog
       </td>
       <td className="px-4 py-3 text-xs text-gray-500">
         {log.retry_count > 0 ? <span className="text-orange-500">×{log.retry_count}</span> : '0'}
+      </td>
+      <td className="px-4 py-3">
+        {isFailed && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onRetry(log.id) }}
+            disabled={isRetrying}
+            className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 disabled:opacity-50"
+            title="Yeniden Dene"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Dene
+          </button>
+        )}
       </td>
     </tr>
   )
@@ -95,6 +117,7 @@ function LogDetail({ log, onClose }: { log: WebhookLog; onClose: () => void }) {
 }
 
 export default function WebhookLogsPage() {
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [direction, setDirection] = useState<'inbound' | 'outbound' | undefined>()
   const [selected, setSelected] = useState<WebhookLog | null>(null)
@@ -102,6 +125,11 @@ export default function WebhookLogsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['webhook-logs', page, direction],
     queryFn: () => webhooksApi.getLogs({ page, per_page: 20, direction }),
+  })
+
+  const retryMutation = useMutation({
+    mutationFn: (logId: string) => webhooksApi.retryLog(logId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['webhook-logs'] }),
   })
 
   const totalPages = Math.ceil((data?.total || 0) / 20)
@@ -153,11 +181,18 @@ export default function WebhookLogsPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Transaction</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">HTTP</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Retry</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {data.items.map((log) => (
-                <LogRow key={log.id} log={log} onExpand={setSelected} />
+                <LogRow
+                  key={log.id}
+                  log={log}
+                  onExpand={setSelected}
+                  onRetry={(id) => retryMutation.mutate(id)}
+                  isRetrying={retryMutation.isPending}
+                />
               ))}
             </tbody>
           </table>

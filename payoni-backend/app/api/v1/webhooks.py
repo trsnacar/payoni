@@ -1,14 +1,14 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Request, Response, Depends, Query
+from fastapi import APIRouter, Request, Response, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 
 from app.dependencies import get_db, get_current_merchant
 from app.models.merchant import Merchant
 from app.models.webhook_log import WebhookLog
-from app.services.webhook_service import WebhookService
+from app.services.webhook_service import WebhookService, verify_signature
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
@@ -30,10 +30,38 @@ async def provider_callback(
         parsed = parse_qs(body_text)
         payload = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
 
+    headers_dict = dict(request.headers)
+    verified = verify_signature(provider_slug, raw_body, headers_dict)
+
     service = WebhookService(db)
-    await service.handle_inbound(provider_slug, payload, raw_body=body_text)
+    await service.handle_inbound(provider_slug, payload, raw_body=body_text, headers=headers_dict, verified=verified)
 
     return Response(content="OK", status_code=200)
+
+
+@router.post("/logs/{log_id}/retry")
+async def retry_webhook(
+    log_id: UUID,
+    merchant: Merchant = Depends(get_current_merchant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Başarısız outbound webhook'u yeniden gönderir."""
+    result = await db.execute(
+        select(WebhookLog).where(
+            WebhookLog.id == log_id,
+            WebhookLog.merchant_id == merchant.id,
+            WebhookLog.direction == "outbound",
+        )
+    )
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Webhook log bulunamadı")
+
+    if log.transaction_id:
+        from app.tasks.webhook_tasks import send_merchant_webhook
+        send_merchant_webhook.delay(str(log.transaction_id))
+
+    return {"message": "Webhook yeniden gönderim kuyruğa alındı"}
 
 
 @router.get("/logs")

@@ -23,4 +23,7 @@ export interface WebhookLogList {
 export const webhooksApi = {
   getLogs: (params?: { page?: number; per_page?: number; direction?: 'inbound' | 'outbound' }) =>
     apiClient.get<WebhookLogList>('/webhooks/logs', { params }).then((r) => r.data),
+
+  retryLog: (logId: string) =>
+    apiClient.post<{ message: string }>(`/webhooks/logs/${logId}/retry`).then((r) => r.data),
 }
