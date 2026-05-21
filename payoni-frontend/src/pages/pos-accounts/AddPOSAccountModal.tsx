@@ -7,6 +7,7 @@ interface EditData {
   id: string
   display_name?: string
   environment: string
+  commission_rates?: Record<string, number>
 }
 
 interface Props {
@@ -43,6 +44,14 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
   const [credentials, setCredentials] = useState<Record<string, string>>({})
   const [displayName, setDisplayName] = useState(editData?.display_name || '')
   const [environment, setEnvironment] = useState(editData?.environment || 'production')
+  const [commissionRates, setCommissionRates] = useState<Record<string, string>>(() => {
+    if (editData?.commission_rates) {
+      return Object.fromEntries(
+        Object.entries(editData.commission_rates).map(([k, v]) => [k, String(v)])
+      )
+    }
+    return {}
+  })
   const [error, setError] = useState('')
   const [activeCategory, setActiveCategory] = useState<'aggregator' | 'bank'>('aggregator')
 
@@ -57,7 +66,7 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
   const createMutation = useMutation({
     mutationFn: (data: Parameters<typeof posAccountsApi.create>[0]) =>
       isEdit
-        ? posAccountsApi.update(editData!.id, { display_name: data.display_name, environment: data.environment })
+        ? posAccountsApi.update(editData!.id, { display_name: data.display_name, environment: data.environment, commission_rates: data.commission_rates })
         : posAccountsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-accounts'] })
@@ -78,15 +87,33 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
     setStep('form')
   }
 
+  const buildCommissionRates = () =>
+    Object.fromEntries(
+      Object.entries(commissionRates)
+        .filter(([, v]) => v !== '' && !isNaN(parseFloat(v)))
+        .map(([k, v]) => [k, parseFloat(v)])
+    )
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (isEdit) {
+      createMutation.mutate({
+        provider_slug: '',
+        credentials: {},
+        display_name: displayName || undefined,
+        environment,
+        commission_rates: buildCommissionRates(),
+      })
+      return
+    }
     if (!selectedProvider) return
     createMutation.mutate({
       provider_slug: selectedProvider.slug,
       display_name: displayName || undefined,
       credentials,
       environment,
+      commission_rates: buildCommissionRates(),
     })
   }
 
@@ -216,6 +243,49 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <label className="label">
+                  Taksit Komisyon Oranları{' '}
+                  <span className="text-gray-400 font-normal">(opsiyonel)</span>
+                </label>
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Taksit</th>
+                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Banka Oranı (%)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[1, 2, 3, 6, 9, 12].map((n) => (
+                        <tr key={n} className="border-t border-gray-100">
+                          <td className="px-4 py-2 text-gray-700 text-sm">
+                            {n === 1 ? 'Peşin' : `${n} Taksit`}
+                          </td>
+                          <td className="px-4 py-2">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              value={commissionRates[String(n)] ?? ''}
+                              onChange={(e) =>
+                                setCommissionRates((prev) => ({ ...prev, [String(n)]: e.target.value }))
+                              }
+                              className="input py-1 text-sm w-28"
+                              placeholder="0.00"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  Boş bırakılan taksitler için oran uygulanmaz. Müşteriye yansıtma için bu oranlar kullanılır.
+                </p>
               </div>
 
               {!isEdit && (

@@ -31,6 +31,7 @@ export interface PaymentLinkCreate {
   max_amount?: number
   preferred_pos_id?: string
   allow_installments?: boolean
+  commission_passthrough?: boolean
   max_uses?: number
   expires_at?: string
   redirect_url?: string
@@ -44,6 +45,8 @@ export interface PublicPaymentLink {
   min_amount?: string
   max_amount?: string
   allow_installments: boolean
+  commission_passthrough?: boolean
+  preferred_pos_id?: string
   merchant_name?: string
   is_available: boolean
   expires_at?: string

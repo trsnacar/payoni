@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import axios from 'axios'
 import { CheckCircle, XCircle, Loader2, Lock } from 'lucide-react'
 import { paymentLinksApi } from '@/api/paymentLinks'
+import { paymentsApi, InstallmentOption } from '@/api/payments'
+import { formatCurrencyTR } from '@/utils/commission'
 import { formatCurrency } from '@/utils/format'
 import { ThreeDModal } from '@/components/payment/ThreeDModal'
 
@@ -17,7 +19,6 @@ interface PaymentForm {
   cvv: string
   customer_name: string
   customer_email: string
-  installments?: string
 }
 
 interface ChargeResponse {
@@ -29,20 +30,14 @@ interface ChargeResponse {
   message?: string
 }
 
-const INSTALLMENT_OPTIONS = [
-  { value: '1', label: 'Peşin' },
-  { value: '2', label: '2 Taksit' },
-  { value: '3', label: '3 Taksit' },
-  { value: '6', label: '6 Taksit' },
-  { value: '9', label: '9 Taksit' },
-  { value: '12', label: '12 Taksit' },
-]
-
 export default function PaymentLinkPage() {
   const { shortCode } = useParams<{ shortCode: string }>()
   const [step, setStep] = useState<'form' | 'success' | 'error'>('form')
   const [errorMsg, setErrorMsg] = useState('')
   const [threeDData, setThreeDData] = useState<ChargeResponse | null>(null)
+  const [installmentOptions, setInstallmentOptions] = useState<InstallmentOption[]>([])
+  const [selectedInstallments, setSelectedInstallments] = useState(1)
+  const [loadingInstallments, setLoadingInstallments] = useState(false)
 
   const { data: link, isLoading, error: loadError } = useQuery({
     queryKey: ['public-link', shortCode],
@@ -50,15 +45,55 @@ export default function PaymentLinkPage() {
     enabled: !!shortCode,
   })
 
-  const { register, handleSubmit, formState: { errors } } = useForm<PaymentForm>()
+  const { register, handleSubmit, control, formState: { errors } } = useForm<PaymentForm>()
+
+  const cardNumber = useWatch({ control, name: 'card_number', defaultValue: '' })
+  const amountField = useWatch({ control, name: 'amount', defaultValue: '' })
+
+  const netAmount = link?.amount ? parseFloat(link.amount) : parseFloat(amountField || '0')
+
+  useEffect(() => {
+    const bin = (cardNumber || '').replace(/\s/g, '').slice(0, 6)
+    if (bin.length < 6 || !netAmount || netAmount <= 0) {
+      setInstallmentOptions([])
+      setSelectedInstallments(1)
+      return
+    }
+
+    let cancelled = false
+    setLoadingInstallments(true)
+    paymentsApi
+      .getInstallments(bin, netAmount, (link as any)?.preferred_pos_id || undefined)
+      .then((r) => {
+        if (!cancelled) {
+          setInstallmentOptions(r.installments)
+          setSelectedInstallments(1)
+        }
+      })
+      .catch(() => { if (!cancelled) setInstallmentOptions([]) })
+      .finally(() => { if (!cancelled) setLoadingInstallments(false) })
+
+    return () => { cancelled = true }
+  }, [cardNumber, netAmount, (link as any)?.preferred_pos_id])
+
+  const commissionPassthrough = (link as any)?.commission_passthrough ?? false
+  const selectedOption = installmentOptions.find((o) => o.count === selectedInstallments)
+
+  const chargeAmount = () => {
+    if (commissionPassthrough && selectedOption?.gross_amount) {
+      return selectedOption.gross_amount
+    }
+    return netAmount
+  }
 
   const payMutation = useMutation({
     mutationFn: (data: PaymentForm) =>
       axios.post<ChargeResponse>(`/pay/${shortCode}/charge`, {
-        amount: link?.amount ? parseFloat(link.amount) : parseFloat(data.amount || '0'),
+        amount: chargeAmount(),
         currency: link?.currency || 'TRY',
-        installments: link?.allow_installments ? parseInt(data.installments || '1') : 1,
+        installments: selectedInstallments,
         use_3d: true,
+        commission_passthrough: commissionPassthrough,
         card: {
           number: data.card_number.replace(/\s/g, ''),
           holder_name: data.card_holder,
@@ -190,18 +225,6 @@ export default function PaymentLinkPage() {
                 </div>
               )}
 
-              {/* Taksit seçimi */}
-              {link.allow_installments && (
-                <div>
-                  <label className="label">Taksit Seçimi</label>
-                  <select {...register('installments')} className="input">
-                    {INSTALLMENT_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               <hr className="border-gray-100" />
 
               {/* Kart bilgileri */}
@@ -254,6 +277,63 @@ export default function PaymentLinkPage() {
                   />
                 </div>
               </div>
+
+              {/* Taksit seçimi — dinamik */}
+              {link.allow_installments && (
+                <div>
+                  <label className="label">Taksit Seçimi</label>
+                  {loadingInstallments ? (
+                    <div className="input flex items-center gap-2 text-gray-400 text-sm">
+                      <Loader2 size={14} className="animate-spin" /> Taksit seçenekleri yükleniyor…
+                    </div>
+                  ) : installmentOptions.length > 0 ? (
+                    <>
+                      <select
+                        value={selectedInstallments}
+                        onChange={(e) => setSelectedInstallments(parseInt(e.target.value))}
+                        className="input"
+                      >
+                        {installmentOptions.map((opt) => {
+                          const displayTotal = commissionPassthrough && opt.gross_amount
+                            ? opt.gross_amount
+                            : opt.total_amount
+                          const displayMonthly = commissionPassthrough && opt.gross_monthly
+                            ? opt.gross_monthly
+                            : opt.monthly_amount
+                          return (
+                            <option key={opt.count} value={opt.count}>
+                              {opt.count === 1
+                                ? `Peşin — ${formatCurrencyTR(displayTotal)} TL`
+                                : `${opt.count} Taksit × ${formatCurrencyTR(displayMonthly)} = ${formatCurrencyTR(displayTotal)} TL`
+                              }
+                            </option>
+                          )
+                        })}
+                      </select>
+
+                      {/* Gross-up bilgi notu */}
+                      {commissionPassthrough && selectedOption && selectedOption.count > 1 && selectedOption.gross_amount && (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                          Ürün bedeli <strong>{formatCurrencyTR(netAmount)} TL</strong> —{' '}
+                          {selectedOption.commission_rate && (
+                            <>%{selectedOption.commission_rate} banka komisyonu dahil</>
+                          )}{' '}
+                          toplam <strong>{formatCurrencyTR(selectedOption.gross_amount)} TL</strong> ödenecek
+                        </p>
+                      )}
+                      {!commissionPassthrough && selectedOption && selectedOption.count > 1 && selectedOption.commission_rate && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          %{selectedOption.commission_rate} banka komisyonu satıcı tarafından karşılanmaktadır.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <select className="input" disabled>
+                      <option>Kart numarasını girin…</option>
+                    </select>
+                  )}
+                </div>
+              )}
 
               <hr className="border-gray-100" />
 

@@ -16,6 +16,7 @@ interface Widget {
   allowed_origins?: string[]
   amount?: string
   allow_installments: boolean
+  commission_passthrough?: boolean
   installment_rules?: InstallmentRule[]
   is_active: boolean
 }
@@ -237,6 +238,7 @@ function WidgetFormModal({ activePOS, existing, onClose }: WidgetFormModalProps)
   const [amount, setAmount] = useState(existing?.amount || '')
   const [preferredPOS, setPreferredPOS] = useState(existing?.preferred_pos_id || '')
   const [allowInstallments, setAllowInstallments] = useState(existing?.allow_installments ?? true)
+  const [commissionPassthrough, setCommissionPassthrough] = useState(existing?.commission_passthrough ?? false)
   const [rules, setRules] = useState<InstallmentRule[]>(existing?.installment_rules || [])
   const [error, setError] = useState('')
 
@@ -298,6 +300,7 @@ function WidgetFormModal({ activePOS, existing, onClose }: WidgetFormModalProps)
       amount: amount ? parseFloat(amount) : undefined,
       preferred_pos_id: preferredPOS || undefined,
       allow_installments: allowInstallments,
+      commission_passthrough: commissionPassthrough,
       installment_rules: rules,
     })
   }
@@ -419,6 +422,22 @@ function WidgetFormModal({ activePOS, existing, onClose }: WidgetFormModalProps)
               className="w-4 h-4"
             />
             <span className="text-sm text-gray-700">Müşteriye taksit seçimi sun</span>
+          </label>
+
+          {/* Komisyon yansıtma */}
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={commissionPassthrough}
+              onChange={(e) => setCommissionPassthrough(e.target.checked)}
+              className="w-4 h-4 mt-0.5 shrink-0"
+            />
+            <div>
+              <span className="text-sm text-gray-700">Banka komisyonunu müşteriye yansıt</span>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Aktif: taksit seçiminde gross tutar gösterilir, müşteri komisyon dahil öder.
+              </p>
+            </div>
           </label>
 
           {/* Güvenlik — izin verilen originler */}

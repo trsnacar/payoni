@@ -170,6 +170,7 @@ export default function POSAccountsPage() {
             id: editAccount.id,
             display_name: editAccount.display_name,
             environment: editAccount.environment,
+            commission_rates: editAccount.commission_rates,
           }}
         />
       )}

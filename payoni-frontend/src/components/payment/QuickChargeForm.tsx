@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { posAccountsApi } from '@/api/posAccounts'
-import { paymentsApi, ChargeRequest } from '@/api/payments'
+import { paymentsApi, ChargeRequest, InstallmentOption } from '@/api/payments'
+import { formatCurrencyTR } from '@/utils/commission'
 import { ThreeDModal } from './ThreeDModal'
 
 interface FormData {
@@ -29,26 +30,74 @@ export function QuickChargeForm({ onSuccess }: Props) {
     redirectUrl?: string
   } | null>(null)
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [installmentOptions, setInstallmentOptions] = useState<InstallmentOption[]>([])
+  const [selectedInstallments, setSelectedInstallments] = useState(1)
+  const [commissionPassthrough, setCommissionPassthrough] = useState(false)
+  const [loadingInstallments, setLoadingInstallments] = useState(false)
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['pos-accounts'],
     queryFn: posAccountsApi.list,
   })
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<FormData>({
     defaultValues: { use_3d: true },
   })
 
+  const cardNumber = watch('card_number')
+  const amountVal = watch('amount')
+  const posAccountId = watch('pos_account_id')
+
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const bin = (cardNumber || '').replace(/\s/g, '').slice(0, 6)
+    const amt = parseFloat(amountVal)
+    if (bin.length < 6 || !amt || amt <= 0) {
+      setInstallmentOptions([])
+      setSelectedInstallments(1)
+      return
+    }
+
+    let cancelled = false
+    setLoadingInstallments(true)
+    paymentsApi
+      .getInstallments(bin, amt, posAccountId || undefined)
+      .then((r) => {
+        if (!cancelled) {
+          setInstallmentOptions(r.installments)
+          setSelectedInstallments(1)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setInstallmentOptions([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingInstallments(false)
+      })
+
+    return () => { cancelled = true }
+  }, [cardNumber, amountVal, posAccountId])
+
+  const selectedOption = installmentOptions.find((o) => o.count === selectedInstallments)
+
+  const effectiveAmount = () => {
+    if (commissionPassthrough && selectedOption?.gross_amount) {
+      return selectedOption.gross_amount
+    }
+    return parseFloat(amountVal) || 0
+  }
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
     setResult(null)
     try {
       const payload: ChargeRequest = {
-        pos_account_id: data.pos_account_id,
-        amount: parseFloat(data.amount),
+        pos_account_id: data.pos_account_id || undefined,
+        amount: effectiveAmount(),
         currency: 'TRY',
+        installments: selectedInstallments,
+        commission_passthrough: commissionPassthrough,
         card: {
           number: data.card_number.replace(/\s/g, ''),
           holder_name: data.card_holder,
@@ -87,6 +136,8 @@ export function QuickChargeForm({ onSuccess }: Props) {
     }
   }
 
+  const activeAccounts = accounts.filter((a) => a.is_active)
+
   return (
     <>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -94,15 +145,14 @@ export function QuickChargeForm({ onSuccess }: Props) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="label">POS Hesabı</label>
-            <select {...register('pos_account_id', { required: true })} className="input">
-              <option value="">Seçin...</option>
-              {accounts.filter((a) => a.is_active).map((a) => (
+            <select {...register('pos_account_id')} className="input">
+              <option value="">Varsayılan</option>
+              {activeAccounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.display_name || a.provider_slug}
                 </option>
               ))}
             </select>
-            {errors.pos_account_id && <p className="text-red-500 text-xs mt-1">Gerekli</p>}
           </div>
           <div>
             <label className="label">Tutar (TRY)</label>
@@ -167,6 +217,42 @@ export function QuickChargeForm({ onSuccess }: Props) {
           </div>
         </div>
 
+        {/* Taksit seçimi */}
+        {(installmentOptions.length > 0 || loadingInstallments) && (
+          <div>
+            <label className="label">Taksit</label>
+            {loadingInstallments ? (
+              <div className="input flex items-center text-gray-400 text-sm">Taksit seçenekleri yükleniyor…</div>
+            ) : (
+              <select
+                value={selectedInstallments}
+                onChange={(e) => setSelectedInstallments(parseInt(e.target.value))}
+                className="input"
+              >
+                {installmentOptions.map((opt) => {
+                  const displayAmount = commissionPassthrough && opt.gross_amount
+                    ? opt.gross_amount
+                    : opt.total_amount
+                  const monthly = commissionPassthrough && opt.gross_monthly
+                    ? opt.gross_monthly
+                    : opt.monthly_amount
+                  return (
+                    <option key={opt.count} value={opt.count}>
+                      {opt.count === 1
+                        ? `Peşin — ${formatCurrencyTR(displayAmount)} TL`
+                        : `${opt.count} Taksit × ${formatCurrencyTR(monthly)} = ${formatCurrencyTR(displayAmount)} TL`
+                      }
+                      {commissionPassthrough && opt.commission_rate && opt.count > 1
+                        ? ` (%${opt.commission_rate} dahil)`
+                        : ''}
+                    </option>
+                  )
+                })}
+              </select>
+            )}
+          </div>
+        )}
+
         {/* Müşteri */}
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -188,15 +274,37 @@ export function QuickChargeForm({ onSuccess }: Props) {
           </div>
         </div>
 
-        {/* 3D toggle */}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            {...register('use_3d')}
-            type="checkbox"
-            className="w-4 h-4 rounded border-gray-300 text-primary-600"
-          />
-          <span className="text-sm text-gray-700">3D Secure kullan</span>
-        </label>
+        {/* Komisyon yansıtma + 3D toggle */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={commissionPassthrough}
+              onChange={(e) => setCommissionPassthrough(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-primary-600"
+            />
+            <span className="text-sm text-gray-700">Komisyonu müşteriye yansıt</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              {...register('use_3d')}
+              type="checkbox"
+              className="w-4 h-4 rounded border-gray-300 text-primary-600"
+            />
+            <span className="text-sm text-gray-700">3D Secure kullan</span>
+          </label>
+        </div>
+
+        {/* Gross-up özeti */}
+        {commissionPassthrough && selectedOption && selectedOption.count > 1 && selectedOption.gross_amount && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+            <strong>Yansıtma hesabı:</strong> Net {formatCurrencyTR(parseFloat(amountVal))} TL →{' '}
+            Müşteri {formatCurrencyTR(selectedOption.gross_amount)} TL öder
+            {selectedOption.commission_rate && (
+              <span className="text-amber-600"> (%{selectedOption.commission_rate} komisyon dahil)</span>
+            )}
+          </div>
+        )}
 
         {result && (
           <div className={`text-sm px-4 py-3 rounded-lg ${result.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -206,13 +314,13 @@ export function QuickChargeForm({ onSuccess }: Props) {
 
         <button
           type="submit"
-          disabled={loading || accounts.filter((a) => a.is_active).length === 0}
+          disabled={loading || activeAccounts.length === 0}
           className="btn-primary w-full"
         >
           {loading ? 'İşlem yapılıyor...' : 'Ödeme Al'}
         </button>
 
-        {accounts.filter((a) => a.is_active).length === 0 && (
+        {activeAccounts.length === 0 && (
           <p className="text-xs text-center text-gray-400">
             Ödeme almak için önce aktif bir POS hesabı ekleyin.
           </p>

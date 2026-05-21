@@ -5,7 +5,7 @@ import { analyticsApi } from '@/api/analytics'
 import { transactionsApi } from '@/api/transactions'
 import { RevenueChart } from '@/components/charts/RevenueChart'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { SkeletonCard, SkeletonTable } from '@/components/shared/SkeletonCard'
+import { SkeletonCard } from '@/components/shared/SkeletonCard'
 import { formatCurrency, formatDate } from '@/utils/format'
 
 export default function DashboardPage() {

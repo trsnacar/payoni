@@ -11,6 +11,7 @@ interface InitialData {
   amount?: number | string
   preferred_pos_id?: string
   allow_installments?: boolean
+  commission_passthrough?: boolean
   max_uses?: number
   redirect_url?: string
 }
@@ -29,6 +30,7 @@ export default function CreatePaymentLinkModal({ onClose, initialData }: Props) 
     amount: initialData?.amount != null ? String(initialData.amount) : '',
     preferred_pos_id: initialData?.preferred_pos_id || '',
     allow_installments: initialData?.allow_installments ?? true,
+    commission_passthrough: initialData?.commission_passthrough ?? false,
     max_uses: initialData?.max_uses != null ? String(initialData.max_uses) : '',
     redirect_url: initialData?.redirect_url || '',
   })
@@ -64,6 +66,7 @@ export default function CreatePaymentLinkModal({ onClose, initialData }: Props) 
       amount: parseFloat(form.amount),
       preferred_pos_id: form.preferred_pos_id || undefined,
       allow_installments: form.allow_installments,
+      commission_passthrough: form.commission_passthrough,
       max_uses: form.max_uses ? parseInt(form.max_uses) : undefined,
       redirect_url: form.redirect_url || undefined,
     })
@@ -152,6 +155,22 @@ export default function CreatePaymentLinkModal({ onClose, initialData }: Props) 
               className="w-4 h-4 text-primary-600"
             />
             <span className="text-sm text-gray-700">Taksit seçeneğine izin ver</span>
+          </label>
+
+          {/* Komisyon yansıtma */}
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.commission_passthrough}
+              onChange={(e) => setForm((f) => ({ ...f, commission_passthrough: e.target.checked }))}
+              className="w-4 h-4 text-primary-600 mt-0.5 shrink-0"
+            />
+            <div>
+              <span className="text-sm text-gray-700">Banka komisyonunu müşteriye yansıt</span>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Aktif: müşteri komisyon dahil gross tutarı öder. Pasif: komisyonu siz karşılarsınız.
+              </p>
+            </div>
           </label>
 
           {/* Maks kullanım */}

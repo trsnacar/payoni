@@ -5,6 +5,8 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { ThreeDModal } from '../../components/payment/ThreeDModal'
+import { paymentsApi, InstallmentOption } from '../../api/payments'
+import { formatCurrencyTR } from '../../utils/commission'
 
 interface WidgetInfo {
   name: string
@@ -12,6 +14,7 @@ interface WidgetInfo {
   amount?: string
   currency: string
   allow_installments: boolean
+  commission_passthrough?: boolean
   is_active: boolean
 }
 
@@ -21,7 +24,6 @@ interface CardForm {
   exp_year: string
   cvv: string
   holder_name: string
-  installments: number
   customer_name: string
   customer_email: string
 }
@@ -52,12 +54,14 @@ export function EmbedPage() {
     exp_year: '',
     cvv: '',
     holder_name: '',
-    installments: 1,
     customer_name: '',
     customer_email: '',
   })
 
   const [customAmount, setCustomAmount] = useState(paramAmount || '')
+  const [installmentOptions, setInstallmentOptions] = useState<InstallmentOption[]>([])
+  const [selectedInstallments, setSelectedInstallments] = useState(1)
+  const [loadingInstallments, setLoadingInstallments] = useState(false)
 
   useEffect(() => {
     if (!widgetId) return
@@ -68,6 +72,41 @@ export function EmbedPage() {
   }, [widgetId])
 
   const finalAmount = widget?.amount || customAmount
+  const netAmount = parseFloat(finalAmount) || 0
+  const commissionPassthrough = widget?.commission_passthrough ?? false
+
+  useEffect(() => {
+    const bin = form.number.replace(/\s/g, '').slice(0, 6)
+    if (bin.length < 6 || !netAmount || !widget?.allow_installments) {
+      setInstallmentOptions([])
+      setSelectedInstallments(1)
+      return
+    }
+
+    let cancelled = false
+    setLoadingInstallments(true)
+    paymentsApi
+      .getInstallments(bin, netAmount)
+      .then((r) => {
+        if (!cancelled) {
+          setInstallmentOptions(r.installments)
+          setSelectedInstallments(1)
+        }
+      })
+      .catch(() => { if (!cancelled) setInstallmentOptions([]) })
+      .finally(() => { if (!cancelled) setLoadingInstallments(false) })
+
+    return () => { cancelled = true }
+  }, [form.number, netAmount, widget?.allow_installments])
+
+  const selectedOption = installmentOptions.find((o) => o.count === selectedInstallments)
+
+  const chargeAmount = () => {
+    if (commissionPassthrough && selectedOption?.gross_amount) {
+      return selectedOption.gross_amount
+    }
+    return netAmount
+  }
 
   function formatCardNumber(value: string): string {
     return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
@@ -81,9 +120,10 @@ export function EmbedPage() {
 
     try {
       const resp = await axios.post(`/embed/${widgetId}/charge`, {
-        amount: parseFloat(finalAmount),
+        amount: chargeAmount(),
         currency: widget.currency,
-        installments: form.installments,
+        installments: selectedInstallments,
+        commission_passthrough: commissionPassthrough,
         use_3d: true,
         card: {
           number: form.number.replace(/\s/g, ''),
@@ -147,7 +187,7 @@ export function EmbedPage() {
         <div className="text-4xl">✓</div>
         <h2 className="text-lg font-semibold text-green-600">Ödeme Başarılı</h2>
         <p className="text-sm text-muted-foreground">
-          {parseFloat(finalAmount).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {widget.currency} tutarındaki ödemeniz alındı.
+          {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {widget.currency} tutarındaki ödemeniz alındı.
         </p>
         {txId && <p className="text-xs text-muted-foreground">İşlem No: {txId}</p>}
       </div>
@@ -188,7 +228,7 @@ export function EmbedPage() {
           <p className="font-semibold">{widget.name}</p>
           {finalAmount && (
             <p className="text-2xl font-bold mt-1">
-              {parseFloat(finalAmount).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {widget.currency}
+              {netAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {widget.currency}
             </p>
           )}
         </div>
@@ -302,16 +342,49 @@ export function EmbedPage() {
           {widget.allow_installments && (
             <div className="space-y-1">
               <Label htmlFor="inst">Taksit</Label>
-              <select
-                id="inst"
-                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
-                value={form.installments}
-                onChange={(e) => setForm({ ...form, installments: parseInt(e.target.value) })}
-              >
-                {[1, 2, 3, 6, 9, 12].map((n) => (
-                  <option key={n} value={n}>{n === 1 ? 'Tek Çekim' : `${n} Taksit`}</option>
-                ))}
-              </select>
+              {loadingInstallments ? (
+                <div className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-muted-foreground flex items-center">
+                  Yükleniyor…
+                </div>
+              ) : installmentOptions.length > 0 ? (
+                <>
+                  <select
+                    id="inst"
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    value={selectedInstallments}
+                    onChange={(e) => setSelectedInstallments(parseInt(e.target.value))}
+                  >
+                    {installmentOptions.map((opt) => {
+                      const displayTotal = commissionPassthrough && opt.gross_amount
+                        ? opt.gross_amount : opt.total_amount
+                      const displayMonthly = commissionPassthrough && opt.gross_monthly
+                        ? opt.gross_monthly : opt.monthly_amount
+                      return (
+                        <option key={opt.count} value={opt.count}>
+                          {opt.count === 1
+                            ? `Tek Çekim — ${formatCurrencyTR(displayTotal)} TL`
+                            : `${opt.count} Taksit × ${formatCurrencyTR(displayMonthly)} = ${formatCurrencyTR(displayTotal)} TL`
+                          }
+                        </option>
+                      )
+                    })}
+                  </select>
+                  {commissionPassthrough && selectedOption && selectedOption.count > 1 && selectedOption.gross_amount && (
+                    <p className="text-xs text-amber-700 mt-1">
+                      Ürün: {formatCurrencyTR(netAmount)} TL — komisyon dahil:{' '}
+                      <strong>{formatCurrencyTR(selectedOption.gross_amount)} TL</strong>
+                    </p>
+                  )}
+                </>
+              ) : (
+                <select
+                  id="inst"
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-muted-foreground"
+                  disabled
+                >
+                  <option>Kart numarasını girin…</option>
+                </select>
+              )}
             </div>
           )}
 
