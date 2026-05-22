@@ -29,6 +29,8 @@ export interface TokenResponse {
   token_type: string
   expires_in: number
   is_superuser: boolean
+  is_verified: boolean
+  onboarding_status: string
 }
 
 export const authApi = {

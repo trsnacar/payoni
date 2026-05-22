@@ -54,6 +54,8 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int  # saniye
     is_superuser: bool = False
+    is_verified: bool = False
+    onboarding_status: str = "pending_documents"
 
 
 class RefreshRequest(BaseModel):

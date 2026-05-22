@@ -23,7 +23,13 @@ export default function LoginPage() {
     try {
       const res = await authApi.login(data)
       setToken(res.access_token, res.is_superuser)
-      navigate(res.is_superuser ? '/admin' : '/dashboard')
+      if (res.is_superuser) {
+        navigate('/admin')
+      } else if (!res.is_verified || res.onboarding_status !== 'approved') {
+        navigate('/pending-verification')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Giriş başarısız')
     } finally {

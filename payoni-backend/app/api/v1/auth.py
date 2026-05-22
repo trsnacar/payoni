@@ -72,6 +72,8 @@ async def register(body: RegisterRequest, response: Response, db: AsyncSession =
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         is_superuser=merchant.is_superuser,
+        is_verified=merchant.is_verified,
+        onboarding_status=merchant.onboarding_status,
     )
 
 
@@ -102,6 +104,8 @@ async def login(body: LoginRequest, response: Response, db: AsyncSession = Depen
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         is_superuser=merchant.is_superuser,
+        is_verified=merchant.is_verified,
+        onboarding_status=merchant.onboarding_status,
     )
 
 
@@ -144,6 +148,8 @@ async def refresh(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         is_superuser=merchant.is_superuser,
+        is_verified=merchant.is_verified,
+        onboarding_status=merchant.onboarding_status,
     )
 
 
