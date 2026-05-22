@@ -34,6 +34,7 @@ class Merchant(Base, UUIDMixin, TimestampMixin):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     plan: Mapped[str] = mapped_column(String(50), default="free")
     onboarding_status: Mapped[str] = mapped_column(String(30), default="pending_documents")
 

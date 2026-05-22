@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import AsyncSessionLocal
 from app.core.security import decode_token, hash_api_key
-from app.core.exceptions import UnauthorizedException
+from app.core.exceptions import UnauthorizedException, ForbiddenException
 from app.models.merchant import Merchant
 from app.models.api_key import ApiKey
 
@@ -45,6 +45,14 @@ async def get_current_merchant(
         raise UnauthorizedException("Merchant bulunamadı veya pasif")
 
     return merchant
+
+
+async def get_current_superuser(
+    current: Merchant = Depends(get_current_merchant),
+) -> Merchant:
+    if not current.is_superuser:
+        raise ForbiddenException("Admin yetkisi gerekli")
+    return current
 
 
 async def _get_merchant_by_api_key(key: str, db: AsyncSession) -> Merchant:

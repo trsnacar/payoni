@@ -53,6 +53,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int  # saniye
+    is_superuser: bool = False
 
 
 class RefreshRequest(BaseModel):

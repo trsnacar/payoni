@@ -28,6 +28,7 @@ export interface TokenResponse {
   access_token: string
   token_type: string
   expires_in: number
+  is_superuser: boolean
 }
 
 export const authApi = {

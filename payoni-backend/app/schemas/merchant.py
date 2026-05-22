@@ -34,6 +34,7 @@ class MerchantDocumentResponse(BaseModel):
     original_filename: str
     file_size: int
     mime_type: str
+    file_path: str
     status: str
     uploaded_at: datetime
     rejection_reason: Optional[str] = None

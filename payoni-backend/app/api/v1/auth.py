@@ -56,7 +56,7 @@ async def register(body: RegisterRequest, response: Response, db: AsyncSession =
     await db.commit()
     await db.refresh(merchant)
 
-    access_token = create_access_token(str(merchant.id), merchant.email)
+    access_token = create_access_token(str(merchant.id), merchant.email, merchant.is_superuser)
     refresh_token, _ = create_refresh_token(str(merchant.id))
 
     response.set_cookie(
@@ -71,6 +71,7 @@ async def register(body: RegisterRequest, response: Response, db: AsyncSession =
     return TokenResponse(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        is_superuser=merchant.is_superuser,
     )
 
 
@@ -85,7 +86,7 @@ async def login(body: LoginRequest, response: Response, db: AsyncSession = Depen
     if not merchant.is_active or merchant.deleted_at:
         raise UnauthorizedException("Hesap pasif veya silinmiş")
 
-    access_token = create_access_token(str(merchant.id), merchant.email)
+    access_token = create_access_token(str(merchant.id), merchant.email, merchant.is_superuser)
     refresh_token, _ = create_refresh_token(str(merchant.id))
 
     response.set_cookie(
@@ -100,6 +101,7 @@ async def login(body: LoginRequest, response: Response, db: AsyncSession = Depen
     return TokenResponse(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        is_superuser=merchant.is_superuser,
     )
 
 
@@ -126,7 +128,7 @@ async def refresh(
     if not merchant or not merchant.is_active:
         raise UnauthorizedException()
 
-    access_token = create_access_token(str(merchant.id), merchant.email)
+    access_token = create_access_token(str(merchant.id), merchant.email, merchant.is_superuser)
     new_refresh_token, _ = create_refresh_token(str(merchant.id))
 
     response.set_cookie(
@@ -141,6 +143,7 @@ async def refresh(
     return TokenResponse(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        is_superuser=merchant.is_superuser,
     )
 
 

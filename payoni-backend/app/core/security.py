@@ -23,11 +23,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return _bcrypt.checkpw(_prep(plain_password), hashed_password.encode())
 
 
-def create_access_token(merchant_id: str, email: str) -> str:
+def create_access_token(merchant_id: str, email: str, is_superuser: bool = False) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": merchant_id,
         "email": email,
+        "is_superuser": is_superuser,
         "type": "access",
         "exp": expire,
         "iat": datetime.now(timezone.utc),

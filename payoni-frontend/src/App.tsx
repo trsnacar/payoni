@@ -18,6 +18,9 @@ import SettingsPage from '@/pages/settings/SettingsPage'
 import WebhookLogsPage from '@/pages/webhooks/WebhookLogsPage'
 import PaymentLinkPage from '@/pages/public/PaymentLinkPage'
 import { EmbedPage } from '@/pages/public/EmbedPage'
+import AdminLayout from '@/components/layout/AdminLayout'
+import AdminMerchantsPage from '@/pages/admin/AdminMerchantsPage'
+import AdminMerchantDetailPage from '@/pages/admin/AdminMerchantDetailPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -25,9 +28,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const isSuperuser = useAuthStore((s) => s.isSuperuser)
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!isSuperuser) return <Navigate to="/dashboard" replace />
+  return <>{children}</>
+}
+
 function HomeRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  const isSuperuser = useAuthStore((s) => s.isSuperuser)
+  if (isAuthenticated) return <Navigate to={isSuperuser ? '/admin' : '/dashboard'} replace />
   return <LandingPage />
 }
 
@@ -68,6 +80,20 @@ export default function App() {
           <Route path="api-keys" element={<ApiKeysPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="webhook-logs" element={<WebhookLogsPage />} />
+        </Route>
+
+        {/* Admin (korumalı, sadece superuser) */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          <Route index element={<Navigate to="/admin/merchants" replace />} />
+          <Route path="merchants" element={<AdminMerchantsPage />} />
+          <Route path="merchants/:id" element={<AdminMerchantDetailPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

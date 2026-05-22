@@ -51,7 +51,24 @@
       "Bash(curl -s http://localhost:8000/health)",
       "Bash(curl -s http://localhost:8000/docs)",
       "Read(//tmp/**)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(Select-Object -First 20 FullName)",
+      "Bash(grep -r \"^[[:space:]]*pass[[:space:]]*$\" \"C:\\\\Users\\\\trusan\\\\Desktop\\\\Yazılım Projelerim\\\\Payoni\\\\payoni-backend\\\\app\\\\gateways\" --include=\"*.py\")",
+      "Bash(read bank *)",
+      "Read(//c/Users/trusan/Desktop/Yazılım Projelerim/Payoni/payoni-backend/app/gateways/banks$bank/**)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(grep -E \"\\\\.\\(py|ts|tsx\\)$\")",
+      "Bash(grep -E \"\\\\.\\(py|ts\\)$\")",
+      "Bash(dir /s /b \"C:\\\\Users\\\\trusan\\\\Desktop\\\\Yazılım Projelerim\\\\Payoni\\\\payoni-frontend\\\\src\\\\pages\\\\*.tsx\")",
+      "Bash(dir *)",
+      "Bash(docker-compose exec *)",
+      "Bash(npx vite *)",
+      "Bash(docker-compose ps *)",
+      "PowerShell(netstat *)",
+      "Bash(docker-compose restart *)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "Bash(Select-Object -Skip 1)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\(f'Count: {len\\(data\\)}'\\); [print\\(f'  - {m[\\\\\"business_name\\\\\"]} \\({m[\\\\\"onboarding_status\\\\\"]}\\)'\\) for m in data]\")"
     ]
   }
 }

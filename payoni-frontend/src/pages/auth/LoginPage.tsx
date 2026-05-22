@@ -22,8 +22,8 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const res = await authApi.login(data)
-      setToken(res.access_token)
-      navigate('/dashboard')
+      setToken(res.access_token, res.is_superuser)
+      navigate(res.is_superuser ? '/admin' : '/dashboard')
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Giriş başarısız')
     } finally {

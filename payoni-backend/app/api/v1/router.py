@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import auth, merchants, pos_accounts, payments, transactions, payment_links, widgets, analytics, api_keys, webhooks
+from app.api.v1 import auth, merchants, pos_accounts, payments, transactions, payment_links, widgets, analytics, api_keys, webhooks, admin
 
 router = APIRouter(prefix="/api/v1")
 
@@ -14,3 +14,4 @@ router.include_router(widgets.router)
 router.include_router(analytics.router)
 router.include_router(api_keys.router)
 router.include_router(webhooks.router)
+router.include_router(admin.router)
