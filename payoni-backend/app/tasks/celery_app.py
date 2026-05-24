@@ -5,7 +5,7 @@ celery_app = Celery(
     "payoni",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.tasks.webhook_tasks", "app.tasks.payment_tasks"],
+    include=["app.tasks.webhook_tasks", "app.tasks.payment_tasks", "app.tasks.email_tasks"],
 )
 
 celery_app.conf.update(

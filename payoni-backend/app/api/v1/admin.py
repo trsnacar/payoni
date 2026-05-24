@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.dependencies import get_db, get_current_superuser
+from app.tasks.email_tasks import send_approval_email, send_rejection_email
 from app.models.merchant import Merchant
 from app.models.merchant_document import MerchantDocument
 from app.core.exceptions import NotFoundException
@@ -100,6 +101,7 @@ async def approve_merchant(
 
     await db.commit()
     await db.refresh(merchant)
+    send_approval_email.delay(merchant.email, merchant.business_name)
     return merchant
 
 
@@ -123,6 +125,7 @@ async def reject_merchant(
     merchant.onboarding_status = "rejected"
     await db.commit()
     await db.refresh(merchant)
+    send_rejection_email.delay(merchant.email, merchant.business_name, body.reason)
     return merchant
 
 

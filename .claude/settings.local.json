@@ -68,7 +68,10 @@
       "Bash(docker-compose restart *)",
       "Bash(ConvertTo-Csv -NoTypeInformation)",
       "Bash(Select-Object -Skip 1)",
-      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\(f'Count: {len\\(data\\)}'\\); [print\\(f'  - {m[\\\\\"business_name\\\\\"]} \\({m[\\\\\"onboarding_status\\\\\"]}\\)'\\) for m in data]\")"
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); print\\(f'Count: {len\\(data\\)}'\\); [print\\(f'  - {m[\\\\\"business_name\\\\\"]} \\({m[\\\\\"onboarding_status\\\\\"]}\\)'\\) for m in data]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Login OK, is_superuser:', d['is_superuser']\\)\")",
+      "Bash(docker-compose logs *)",
+      "Bash(docker-compose up *)"
     ]
   }
 }

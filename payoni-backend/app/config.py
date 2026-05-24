@@ -26,6 +26,15 @@ class Settings(BaseSettings):
 
     UPLOADS_DIR: str = "uploads"
 
+    # E-posta (SMTP)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "noreply@payoni.com"
+    SMTP_FROM_NAME: str = "Payoni"
+    SMTP_TLS: bool = True
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):

@@ -16,6 +16,7 @@ from app.schemas.merchant import (
 )
 from app.core.security import verify_password, hash_password
 from app.config import settings
+from app.tasks.email_tasks import send_documents_received_email
 
 ALLOWED_DOC_TYPES = {"tax_plate", "signature_circular", "id_front", "id_back", "trade_registry"}
 REQUIRED_DOC_TYPES = ALLOWED_DOC_TYPES
@@ -141,9 +142,10 @@ async def upload_document(
         select(MerchantDocument.document_type).where(MerchantDocument.merchant_id == merchant.id)
     )
     uploaded_types = {r[0] for r in uploaded.fetchall()}
-    if REQUIRED_DOC_TYPES.issubset(uploaded_types):
+    if REQUIRED_DOC_TYPES.issubset(uploaded_types) and merchant.onboarding_status == "pending_documents":
         merchant.onboarding_status = "under_review"
         await db.commit()
+        send_documents_received_email.delay(merchant.email, merchant.business_name)
 
     return doc
 

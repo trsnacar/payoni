@@ -14,6 +14,7 @@ from app.core.exceptions import UnauthorizedException, ConflictException
 from app.models.merchant import Merchant
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from app.config import settings
+from app.tasks.email_tasks import send_registration_email
 
 import uuid
 
@@ -67,6 +68,8 @@ async def register(body: RegisterRequest, response: Response, db: AsyncSession =
         samesite="lax",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
     )
+
+    send_registration_email.delay(merchant.email, merchant.business_name)
 
     return TokenResponse(
         access_token=access_token,
