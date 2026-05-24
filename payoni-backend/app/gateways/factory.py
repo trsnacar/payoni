@@ -183,47 +183,61 @@ PROVIDER_CREDENTIALS_SCHEMA: dict[str, list[dict]] = {
 def _logo(domain: str) -> str:
     return f"https://logo.clearbit.com/{domain}"
 
+def _gfavicon(domain: str) -> str:
+    return f"https://www.google.com/s2/favicons?sz=128&domain={domain}"
+
+
+def _entry(slug: str, name: str, category: str, domain: str, color: str = "#6366f1") -> dict:
+    return {
+        "slug": slug,
+        "name": name,
+        "category": category,
+        "logo": _logo(domain),
+        "logo_fallback": _gfavicon(domain),
+        "color": color,
+    }
+
 
 PROVIDER_LIST = [
     # Aggregators
-    {"slug": "iyzico",     "name": "iyzico",       "category": "aggregator", "logo": _logo("iyzico.com")},
-    {"slug": "paytr",      "name": "PayTR",         "category": "aggregator", "logo": _logo("paytr.com")},
-    {"slug": "morpara",    "name": "MorPara",       "category": "aggregator", "logo": _logo("morpara.com.tr")},
-    {"slug": "sipay",      "name": "Sipay",         "category": "aggregator", "logo": _logo("sipay.com.tr")},
-    {"slug": "moka",       "name": "Moka",          "category": "aggregator", "logo": _logo("mokahq.com")},
-    {"slug": "paratika",   "name": "Paratika",      "category": "aggregator", "logo": _logo("paratika.com.tr")},
-    {"slug": "payten",     "name": "Payten",        "category": "aggregator", "logo": _logo("payten.com")},
-    {"slug": "ipara",      "name": "iPara",         "category": "aggregator", "logo": _logo("ipara.com.tr")},
-    {"slug": "tami",       "name": "Tami",          "category": "aggregator", "logo": _logo("tami.com.tr")},
-    {"slug": "ahlpay",     "name": "AhlPay",        "category": "aggregator", "logo": _logo("ahlpay.com.tr")},
-    {"slug": "moneytolia", "name": "Moneytolia",    "category": "aggregator", "logo": _logo("moneytolia.com")},
-    {"slug": "rubikpara",  "name": "RubikPara",     "category": "aggregator", "logo": _logo("rubikpara.com")},
-    {"slug": "paynkolay",  "name": "PayNKolay",     "category": "aggregator", "logo": _logo("paynkolay.com.tr")},
-    {"slug": "vepara",     "name": "Vepara",        "category": "aggregator", "logo": _logo("vepara.com")},
-    {"slug": "parampos",   "name": "ParamPos",      "category": "aggregator", "logo": _logo("param.com.tr")},
-    {"slug": "paybull",    "name": "PayBull",       "category": "aggregator", "logo": _logo("paybull.com.tr")},
+    _entry("iyzico",     "iyzico",       "aggregator", "iyzico.com",        "#6a0dad"),
+    _entry("paytr",      "PayTR",        "aggregator", "paytr.com",         "#0066cc"),
+    _entry("morpara",    "MorPara",      "aggregator", "morpara.com.tr",    "#8b5cf6"),
+    _entry("sipay",      "Sipay",        "aggregator", "sipay.com.tr",      "#0ea5e9"),
+    _entry("moka",       "Moka",         "aggregator", "mokahq.com",        "#f59e0b"),
+    _entry("paratika",   "Paratika",     "aggregator", "paratika.com.tr",   "#10b981"),
+    _entry("payten",     "Payten",       "aggregator", "payten.com",        "#3b82f6"),
+    _entry("ipara",      "iPara",        "aggregator", "ipara.com.tr",      "#6366f1"),
+    _entry("tami",       "Tami",         "aggregator", "tami.com.tr",       "#14b8a6"),
+    _entry("ahlpay",     "AhlPay",       "aggregator", "ahlpay.com.tr",     "#f97316"),
+    _entry("moneytolia", "Moneytolia",   "aggregator", "moneytolia.com",    "#8b5cf6"),
+    _entry("rubikpara",  "RubikPara",    "aggregator", "rubikpara.com",     "#ef4444"),
+    _entry("paynkolay",  "PayNKolay",    "aggregator", "paynkolay.com.tr",  "#22c55e"),
+    _entry("vepara",     "Vepara",       "aggregator", "vepara.com",        "#a855f7"),
+    _entry("parampos",   "ParamPos",     "aggregator", "param.com.tr",      "#0284c7"),
+    _entry("paybull",    "PayBull",      "aggregator", "paybull.com.tr",    "#dc2626"),
     # Banks
-    {"slug": "garanti",        "name": "Garanti BBVA",   "category": "bank", "logo": _logo("garantibbva.com.tr")},
-    {"slug": "akbank",         "name": "Akbank",         "category": "bank", "logo": _logo("akbank.com")},
-    {"slug": "isbank",         "name": "İş Bankası",     "category": "bank", "logo": _logo("isbank.com.tr")},
-    {"slug": "vakifbank",      "name": "VakıfBank",      "category": "bank", "logo": _logo("vakifbank.com.tr")},
-    {"slug": "yapikredi",      "name": "Yapı Kredi",     "category": "bank", "logo": _logo("yapikredi.com.tr")},
-    {"slug": "denizbank",      "name": "DenizBank",      "category": "bank", "logo": _logo("denizbank.com")},
-    {"slug": "halkbank",       "name": "Halkbank",       "category": "bank", "logo": _logo("halkbank.com.tr")},
-    {"slug": "qnb_finansbank", "name": "QNB Finansbank", "category": "bank", "logo": _logo("qnbfinansbank.com")},
-    {"slug": "ziraat",         "name": "Ziraat Bankası", "category": "bank", "logo": _logo("ziraatbank.com.tr")},
-    {"slug": "sekerbank",      "name": "Şekerbank",      "category": "bank", "logo": _logo("sekerbank.com.tr")},
-    {"slug": "teb",            "name": "TEB",            "category": "bank", "logo": _logo("teb.com.tr")},
-    {"slug": "ing",            "name": "ING Bank",       "category": "bank", "logo": _logo("ing.com.tr")},
-    {"slug": "anadolubank",    "name": "Anadolubank",    "category": "bank", "logo": _logo("anadolubank.com.tr")},
-    {"slug": "alternatif_bank","name": "Alternatif Bank","category": "bank", "logo": _logo("alternatifbank.com.tr")},
-    {"slug": "hsbc",           "name": "HSBC",           "category": "bank", "logo": _logo("hsbc.com.tr")},
-    {"slug": "odeabank",       "name": "Odeabank",       "category": "bank", "logo": _logo("odeabank.com")},
-    {"slug": "fibabanka",      "name": "Fibabanka",      "category": "bank", "logo": _logo("fibabanka.com.tr")},
-    {"slug": "albaraka",       "name": "Albaraka Türk",  "category": "bank", "logo": _logo("albarakatturk.com.tr")},
-    {"slug": "kuveytturk",     "name": "Kuveyt Türk",    "category": "bank", "logo": _logo("kuveytturk.com.tr")},
-    {"slug": "vakif_katilim",  "name": "Vakıf Katılım",  "category": "bank", "logo": _logo("vakifkatilim.com.tr")},
-    {"slug": "ziraat_katilim", "name": "Ziraat Katılım", "category": "bank", "logo": _logo("ziraatkatilim.com.tr")},
+    _entry("garanti",        "Garanti BBVA",   "bank", "garantibbva.com.tr", "#00a651"),
+    _entry("akbank",         "Akbank",         "bank", "akbank.com",         "#e30613"),
+    _entry("isbank",         "İş Bankası",     "bank", "isbank.com.tr",      "#005ca9"),
+    _entry("vakifbank",      "VakıfBank",      "bank", "vakifbank.com.tr",   "#009f4d"),
+    _entry("yapikredi",      "Yapı Kredi",     "bank", "yapikredi.com.tr",   "#003087"),
+    _entry("denizbank",      "DenizBank",      "bank", "denizbank.com",      "#0066b3"),
+    _entry("halkbank",       "Halkbank",       "bank", "halkbank.com.tr",    "#004b87"),
+    _entry("qnb_finansbank", "QNB Finansbank", "bank", "qnbfinansbank.com",  "#861f41"),
+    _entry("ziraat",         "Ziraat Bankası", "bank", "ziraatbank.com.tr",  "#e2001a"),
+    _entry("sekerbank",      "Şekerbank",      "bank", "sekerbank.com.tr",   "#f7941d"),
+    _entry("teb",            "TEB",            "bank", "teb.com.tr",         "#003087"),
+    _entry("ing",            "ING Bank",       "bank", "ing.com.tr",         "#ff6200"),
+    _entry("anadolubank",    "Anadolubank",    "bank", "anadolubank.com.tr", "#003580"),
+    _entry("alternatif_bank","Alternatif Bank","bank", "alternatifbank.com.tr","#004b87"),
+    _entry("hsbc",           "HSBC",           "bank", "hsbc.com.tr",        "#db0011"),
+    _entry("odeabank",       "Odeabank",       "bank", "odeabank.com",       "#6d2077"),
+    _entry("fibabanka",      "Fibabanka",      "bank", "fibabanka.com.tr",   "#e60013"),
+    _entry("albaraka",       "Albaraka Türk",  "bank", "albaraka.com.tr",    "#006838"),
+    _entry("kuveytturk",     "Kuveyt Türk",    "bank", "kuveytturk.com.tr",  "#00843d"),
+    _entry("vakif_katilim",  "Vakıf Katılım",  "bank", "vakifkatilim.com.tr","#009f4d"),
+    _entry("ziraat_katilim", "Ziraat Katılım", "bank", "ziraatkatilim.com.tr","#e2001a"),
 ]
 
 

@@ -19,22 +19,48 @@ type Step = 'pick' | 'form'
 
 const INSTALLMENT_RANGE = Array.from({ length: 12 }, (_, i) => i + 1)
 
-function ProviderLogo({ logo, name }: { logo: string; name: string }) {
-  const [failed, setFailed] = useState(false)
-  if (failed) {
+function ProviderLogo({
+  logo, logoFallback, name, color, size = 10,
+}: {
+  logo: string
+  logoFallback?: string
+  name: string
+  color?: string
+  size?: number
+}) {
+  const [attempt, setAttempt] = useState<'primary' | 'fallback' | 'initials'>('primary')
+
+  const sizeClass = `w-${size} h-${size}`
+  const initials = name.replace(/[^A-Za-zÀ-ÿ0-9 ]/g, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+
+  if (attempt === 'initials') {
     return (
-      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
-        {name.slice(0, 2).toUpperCase()}
+      <div
+        className={`${sizeClass} rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0`}
+        style={{ backgroundColor: color || '#6366f1' }}
+      >
+        {initials}
       </div>
     )
   }
+
+  const src = attempt === 'primary' ? logo : (logoFallback || '')
+
   return (
-    <img
-      src={logo}
-      alt={name}
-      className="w-10 h-10 object-contain rounded-xl"
-      onError={() => setFailed(true)}
-    />
+    <div className={`${sizeClass} rounded-xl overflow-hidden bg-white border border-gray-100 flex items-center justify-center p-1 shrink-0`}>
+      <img
+        src={src}
+        alt={name}
+        className="w-full h-full object-contain"
+        onError={() => {
+          if (attempt === 'primary' && logoFallback) {
+            setAttempt('fallback')
+          } else {
+            setAttempt('initials')
+          }
+        }}
+      />
+    </div>
   )
 }
 
@@ -42,7 +68,7 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
   const queryClient = useQueryClient()
   const isEdit = !!editData
   const [step, setStep] = useState<Step>(isEdit ? 'form' : 'pick')
-  const [selectedProvider, setSelectedProvider] = useState<{ slug: string; name: string; logo: string } | null>(null)
+  const [selectedProvider, setSelectedProvider] = useState<{ slug: string; name: string; logo: string; logo_fallback?: string; color?: string } | null>(null)
   const [credentials, setCredentials] = useState<Record<string, string>>({})
   const [displayName, setDisplayName] = useState(editData?.display_name || '')
   const [environment, setEnvironment] = useState(editData?.environment || 'production')
@@ -212,10 +238,10 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
                   onClick={() => handlePickProvider(p)}
                   className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-2xl hover:border-primary-400 hover:shadow-md transition-all text-left group"
                 >
-                  <ProviderLogo logo={p.logo} name={p.name} />
+                  <ProviderLogo logo={p.logo} logoFallback={p.logo_fallback} name={p.name} color={p.color} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400 truncate capitalize">{p.slug}</p>
+                    <p className="text-xs text-gray-400 truncate capitalize">{p.slug.replace(/_/g, ' ')}</p>
                   </div>
                   <ChevronRight size={15} className="text-gray-300 group-hover:text-primary-500 shrink-0" />
                 </button>
@@ -230,10 +256,10 @@ export default function AddPOSAccountModal({ onClose, editData }: Props) {
             <div className="mb-6">
               {!isEdit && selectedProvider && (
                 <div className="flex items-center gap-3 mb-4">
-                  <ProviderLogo logo={selectedProvider.logo} name={selectedProvider.name} />
+                  <ProviderLogo logo={selectedProvider.logo} logoFallback={selectedProvider.logo_fallback} name={selectedProvider.name} color={selectedProvider.color} size={12} />
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">{selectedProvider.name}</h2>
-                    <p className="text-sm text-gray-400 capitalize">{selectedProvider.slug}</p>
+                    <p className="text-sm text-gray-400 capitalize">{selectedProvider.slug.replace(/_/g, ' ')}</p>
                   </div>
                 </div>
               )}

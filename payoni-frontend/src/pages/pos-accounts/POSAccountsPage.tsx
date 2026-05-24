@@ -2,10 +2,30 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, CheckCircle, XCircle, Star, Trash2, TestTube, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
-import { posAccountsApi, type PosAccount } from '@/api/posAccounts'
+import { posAccountsApi, type PosAccount, type Provider } from '@/api/posAccounts'
 import { formatDate } from '@/utils/format'
 import { SkeletonCard } from '@/components/shared/SkeletonCard'
 import AddPOSAccountModal from './AddPOSAccountModal'
+
+function ProviderLogoSmall({ provider }: { provider?: Provider }) {
+  const [attempt, setAttempt] = useState<'primary' | 'fallback' | 'initials'>('primary')
+  if (!provider) return null
+  const initials = provider.name.replace(/[^A-Za-zÀ-ÿ0-9 ]/g, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+  if (attempt === 'initials') {
+    return (
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor: provider.color || '#6366f1' }}>
+        {initials}
+      </div>
+    )
+  }
+  const src = attempt === 'primary' ? provider.logo : (provider.logo_fallback || '')
+  return (
+    <div className="w-8 h-8 rounded-lg overflow-hidden bg-white border border-gray-100 flex items-center justify-center p-1 shrink-0">
+      <img src={src} alt={provider.name} className="w-full h-full object-contain"
+        onError={() => attempt === 'primary' && provider.logo_fallback ? setAttempt('fallback') : setAttempt('initials')} />
+    </div>
+  )
+}
 
 export default function POSAccountsPage() {
   const queryClient = useQueryClient()
@@ -16,6 +36,14 @@ export default function POSAccountsPage() {
     queryKey: ['pos-accounts'],
     queryFn: posAccountsApi.list,
   })
+
+  const { data: providerData } = useQuery({
+    queryKey: ['providers'],
+    queryFn: posAccountsApi.listProviders,
+    staleTime: Infinity,
+  })
+
+  const providerMap = Object.fromEntries((providerData?.providers || []).map((p) => [p.slug, p]))
 
   const testMutation = useMutation({
     mutationFn: (id: string) => posAccountsApi.test(id).then((r) => ({ ...r, id })),
@@ -58,21 +86,24 @@ export default function POSAccountsPage() {
         {accounts.map((account) => (
           <div key={account.id} className="card p-5">
             <div className="flex items-start justify-between mb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900 capitalize">
-                    {account.display_name || account.provider_slug}
-                  </span>
-                  {account.is_default && (
-                    <span className="inline-flex items-center gap-1 text-xs text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full">
-                      <Star size={10} />
-                      Varsayılan
+              <div className="flex items-center gap-3">
+                <ProviderLogoSmall provider={providerMap[account.provider_slug]} />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">
+                      {account.display_name || providerMap[account.provider_slug]?.name || account.provider_slug}
                     </span>
-                  )}
+                    {account.is_default && (
+                      <span className="inline-flex items-center gap-1 text-xs text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full">
+                        <Star size={10} />
+                        Varsayılan
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400 mt-0.5 block capitalize">
+                    {account.provider_slug.replace(/_/g, ' ')} · {account.environment}
+                  </span>
                 </div>
-                <span className="text-xs text-gray-400 mt-0.5 block capitalize">
-                  {account.provider_slug} · {account.environment}
-                </span>
               </div>
 
               <div className="flex items-center gap-1">

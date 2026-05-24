@@ -26,6 +26,8 @@ export interface Provider {
   slug: string
   name: string
   logo: string
+  logo_fallback?: string
+  color?: string
   category: string
 }
 
