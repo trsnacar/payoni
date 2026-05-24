@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Download, Search, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { transactionsApi } from '@/api/transactions'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { SkeletonTable } from '@/components/shared/SkeletonCard'
@@ -13,10 +14,17 @@ export default function TransactionsPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1) }, 400)
+    return () => clearTimeout(t)
+  }, [search])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['transactions', page, statusFilter, dateFrom, dateTo, search],
+    queryKey: ['transactions', page, statusFilter, dateFrom, dateTo, debouncedSearch],
     queryFn: () => transactionsApi.list({
       page,
       per_page: 20,
@@ -47,11 +55,17 @@ export default function TransactionsPage() {
           <p className="text-sm text-gray-500 mt-0.5">Toplam: {data?.total?.toLocaleString('tr-TR') ?? '...'}</p>
         </div>
         <button
-          onClick={() => transactionsApi.export()}
+          onClick={async () => {
+            setExporting(true)
+            try { await transactionsApi.export(); toast.success('CSV indirildi') }
+            catch { toast.error('Export başarısız') }
+            finally { setExporting(false) }
+          }}
+          disabled={exporting}
           className="btn-secondary flex items-center gap-2"
         >
           <Download size={16} />
-          CSV İndir
+          {exporting ? 'İndiriliyor...' : 'CSV İndir'}
         </button>
       </div>
 
@@ -61,7 +75,7 @@ export default function TransactionsPage() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            onChange={(e) => setSearch(e.target.value)}
             className="input pl-8 w-56"
             placeholder="Müşteri, email, TX ID..."
           />

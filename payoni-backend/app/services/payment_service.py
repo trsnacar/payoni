@@ -186,6 +186,8 @@ class PaymentService:
             raise ValidationException("Sadece captured işlemler iade edilebilir")
 
         refund_amount = req.amount or tx.amount
+        if refund_amount <= 0:
+            raise ValidationException("İade tutarı sıfırdan büyük olmalıdır")
         if refund_amount > (tx.amount - tx.refunded_amount):
             raise ValidationException("İade tutarı ödeme tutarını aşamaz")
 

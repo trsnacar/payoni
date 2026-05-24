@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db, get_current_merchant
@@ -57,21 +57,11 @@ async def create_pos_account(
     )
 
     if body.is_default:
-        # Mevcut default'u kaldır
         await db.execute(
-            select(PosAccount).where(
-                PosAccount.merchant_id == merchant.id,
-                PosAccount.is_default == True,
-            )
+            update(PosAccount)
+            .where(PosAccount.merchant_id == merchant.id)
+            .values(is_default=False)
         )
-        existing_defaults = await db.execute(
-            select(PosAccount).where(
-                PosAccount.merchant_id == merchant.id,
-                PosAccount.is_default == True,
-            )
-        )
-        for p in existing_defaults.scalars().all():
-            p.is_default = False
 
     db.add(pos)
     await db.commit()
@@ -159,13 +149,11 @@ async def set_default_pos(
     merchant: Merchant = Depends(get_current_merchant),
     db: AsyncSession = Depends(get_db),
 ):
-    # Tüm POS'ların default'unu kaldır
-    all_pos = await db.execute(
-        select(PosAccount).where(PosAccount.merchant_id == merchant.id)
+    await db.execute(
+        update(PosAccount)
+        .where(PosAccount.merchant_id == merchant.id)
+        .values(is_default=False)
     )
-    for p in all_pos.scalars().all():
-        p.is_default = False
-
     pos = await _get_pos_or_404(pos_id, merchant.id, db)
     pos.is_default = True
     await db.commit()

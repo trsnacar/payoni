@@ -91,6 +91,8 @@ class PaymentLinkService:
             req.pos_account_id = link.preferred_pos_id
 
         merchant = await self.db.get(Merchant, link.merchant_id)
+        if not merchant:
+            raise NotFoundException("Merchant bulunamadı")
 
         payment_service = PaymentService(self.db)
         result = await payment_service.charge(

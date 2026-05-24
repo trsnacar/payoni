@@ -36,9 +36,23 @@ def verify_signature(provider_slug: str, raw_body: bytes | str, headers: dict, p
         return hmac.compare_digest(expected_sig, received_sig) if received_sig else False
 
     if provider_slug == "paytr":
-        # PayTR: payload içindeki hash alanı — SHA256(merchant_id + merchant_oid + status + merchant_salt)
-        # TODO: PayTR credentials ile tam doğrulama
-        return True
+        # PayTR: hash = base64(SHA256(merchant_id + merchant_oid + status + merchant_salt))
+        merchant_id = (pos_credentials or {}).get("merchant_id", "")
+        merchant_salt = (pos_credentials or {}).get("merchant_salt", "")
+        if not merchant_id or not merchant_salt:
+            return True
+        payload_str = raw_body if isinstance(raw_body, str) else raw_body.decode()
+        try:
+            import urllib.parse
+            params = dict(urllib.parse.parse_qsl(payload_str))
+        except Exception:
+            return True
+        merchant_oid = params.get("merchant_oid", "")
+        status = params.get("status", "")
+        received_hash = params.get("hash", "")
+        hash_str = merchant_id + merchant_oid + status + merchant_salt
+        expected = base64.b64encode(hashlib.sha256(hash_str.encode()).digest()).decode()
+        return hmac.compare_digest(expected, received_hash) if received_hash else False
 
     # Diğer provider'lar için imza doğrulama henüz eklenmedi
     # TODO: morpara, sipay, paratika vb. için HMAC doğrulama ekle
@@ -187,6 +201,9 @@ class WebhookService:
 
     async def _complete_3d(self, transaction: Transaction, payload: dict, provider_slug: str):
         """3D callback'ini gateway ile tamamlar ve transaction'ı günceller."""
+        if transaction.status == "captured":
+            return
+
         from app.models.pos_account import PosAccount
         from app.core.encryption import decrypt_credentials
         from app.gateways.factory import GatewayFactory

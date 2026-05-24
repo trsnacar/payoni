@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, CheckCircle, XCircle, Star, Trash2, TestTube, Pencil } from 'lucide-react'
+import { toast } from 'sonner'
 import { posAccountsApi, type PosAccount } from '@/api/posAccounts'
 import { formatDate } from '@/utils/format'
 import { SkeletonCard } from '@/components/shared/SkeletonCard'
@@ -10,7 +11,6 @@ export default function POSAccountsPage() {
   const queryClient = useQueryClient()
   const [showAdd, setShowAdd] = useState(false)
   const [editAccount, setEditAccount] = useState<PosAccount | null>(null)
-  const [testResult, setTestResult] = useState<{ id: string; success: boolean; message: string } | null>(null)
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['pos-accounts'],
@@ -21,13 +21,13 @@ export default function POSAccountsPage() {
     mutationFn: (id: string) => posAccountsApi.test(id).then((r) => ({ ...r, id })),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['pos-accounts'] })
-      setTestResult(data)
-      setTimeout(() => setTestResult(null), 5000)
+      if (data.success) {
+        toast.success(`Bağlantı başarılı: ${data.message}`)
+      } else {
+        toast.error(`Bağlantı başarısız: ${data.message}`)
+      }
     },
-    onError: (_err, id) => {
-      setTestResult({ id, success: false, message: 'Bağlantı testi başarısız' })
-      setTimeout(() => setTestResult(null), 5000)
-    },
+    onError: () => toast.error('Bağlantı testi başarısız'),
   })
 
   const deleteMutation = useMutation({
@@ -53,21 +53,8 @@ export default function POSAccountsPage() {
         </button>
       </div>
 
-      {testResult && (
-        <div className={`rounded-lg px-4 py-3 text-sm flex items-center justify-between ${testResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-          <span>
-            <strong>{testResult.success ? '✓ Bağlantı başarılı' : '✗ Bağlantı başarısız'}:</strong>{' '}
-            {testResult.message}
-          </span>
-          <button onClick={() => setTestResult(null)} className="ml-4 opacity-60 hover:opacity-100">×</button>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {isLoading && Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} lines={3} />)}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {accounts.map((account) => (
           <div key={account.id} className="card p-5">
             <div className="flex items-start justify-between mb-3">

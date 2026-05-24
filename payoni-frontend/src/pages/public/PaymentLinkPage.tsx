@@ -45,7 +45,28 @@ export default function PaymentLinkPage() {
     enabled: !!shortCode,
   })
 
-  const { register, handleSubmit, control, formState: { errors } } = useForm<PaymentForm>()
+  const { register, handleSubmit, control, getValues, formState: { errors } } = useForm<PaymentForm>()
+
+  const luhnCheck = (num: string) => {
+    const digits = num.replace(/\D/g, '')
+    let sum = 0
+    let alt = false
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let n = parseInt(digits[i], 10)
+      if (alt) { n *= 2; if (n > 9) n -= 9 }
+      sum += n
+      alt = !alt
+    }
+    return sum % 10 === 0
+  }
+
+  const validateExpiry = (month: string, year: string) => {
+    const m = parseInt(month, 10)
+    const y = parseInt('20' + year, 10)
+    if (m < 1 || m > 12) return false
+    const now = new Date()
+    return new Date(y, m) > now
+  }
 
   const cardNumber = useWatch({ control, name: 'card_number', defaultValue: '' })
   const amountField = useWatch({ control, name: 'amount', defaultValue: '' })
@@ -231,11 +252,15 @@ export default function PaymentLinkPage() {
               <div>
                 <label className="label">Kart Numarası</label>
                 <input
-                  {...register('card_number', { required: 'Kart numarası gerekli' })}
+                  {...register('card_number', {
+                    required: 'Kart numarası gerekli',
+                    validate: (v) => luhnCheck(v) || 'Geçersiz kart numarası',
+                  })}
                   className="input tracking-widest"
                   placeholder="0000 0000 0000 0000"
                   maxLength={19}
                 />
+                {errors.card_number && <p className="text-red-500 text-xs mt-1">{errors.card_number.message}</p>}
               </div>
 
               <div>
@@ -245,38 +270,54 @@ export default function PaymentLinkPage() {
                   className="input"
                   placeholder="AD SOYAD"
                 />
+                {errors.card_holder && <p className="text-red-500 text-xs mt-1">{errors.card_holder.message}</p>}
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="label">Ay</label>
                   <input
-                    {...register('exp_month', { required: true })}
+                    {...register('exp_month', {
+                      required: 'Zorunlu',
+                      pattern: { value: /^(0?[1-9]|1[0-2])$/, message: 'Geçersiz' },
+                    })}
                     className="input"
                     placeholder="MM"
                     maxLength={2}
                   />
+                  {errors.exp_month && <p className="text-red-500 text-xs mt-1">{errors.exp_month.message}</p>}
                 </div>
                 <div>
                   <label className="label">Yıl</label>
                   <input
-                    {...register('exp_year', { required: true })}
+                    {...register('exp_year', {
+                      required: 'Zorunlu',
+                      pattern: { value: /^\d{2}$/, message: 'Geçersiz' },
+                      validate: (v) =>
+                        validateExpiry(getValues('exp_month'), v) || 'Kart süresi dolmuş',
+                    })}
                     className="input"
                     placeholder="YY"
                     maxLength={2}
                   />
+                  {errors.exp_year && <p className="text-red-500 text-xs mt-1">{errors.exp_year.message}</p>}
                 </div>
                 <div>
                   <label className="label">CVV</label>
                   <input
-                    {...register('cvv', { required: true })}
+                    {...register('cvv', {
+                      required: 'Zorunlu',
+                      pattern: { value: /^\d{3,4}$/, message: 'Geçersiz' },
+                    })}
                     className="input"
                     type="password"
                     placeholder="***"
                     maxLength={4}
                   />
+                  {errors.cvv && <p className="text-red-500 text-xs mt-1">{errors.cvv.message}</p>}
                 </div>
               </div>
+
 
               {/* Taksit seçimi — dinamik */}
               {link.allow_installments && (

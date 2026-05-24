@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { merchantsApi, Merchant } from '@/api/merchants'
 import { useAuthStore } from '@/store/authStore'
 
@@ -24,9 +24,6 @@ interface PasswordForm {
 export default function SettingsPage() {
   const queryClient = useQueryClient()
   const setMerchant = useAuthStore((s) => s.setMerchant)
-  const [profileSuccess, setProfileSuccess] = useState(false)
-  const [webhookSuccess, setWebhookSuccess] = useState(false)
-  const [passwordSuccess, setPasswordSuccess] = useState(false)
 
   const { data: me } = useQuery<Merchant>({
     queryKey: ['merchant-me'],
@@ -53,9 +50,9 @@ export default function SettingsPage() {
     onSuccess: (updated) => {
       setMerchant(updated)
       queryClient.setQueryData(['merchant-me'], updated)
-      setProfileSuccess(true)
-      setTimeout(() => setProfileSuccess(false), 3000)
+      toast.success('Profil güncellendi')
     },
+    onError: () => toast.error('Profil güncellenemedi'),
   })
 
   const webhookMutation = useMutation({
@@ -64,9 +61,9 @@ export default function SettingsPage() {
     onSuccess: (updated) => {
       setMerchant(updated)
       queryClient.setQueryData(['merchant-me'], updated)
-      setWebhookSuccess(true)
-      setTimeout(() => setWebhookSuccess(false), 3000)
+      toast.success('Webhook ayarları güncellendi')
     },
+    onError: () => toast.error('Webhook ayarları güncellenemedi'),
   })
 
   const passwordForm = useForm<PasswordForm>()
@@ -75,9 +72,10 @@ export default function SettingsPage() {
       merchantsApi.changePassword(data.current_password, data.new_password),
     onSuccess: () => {
       passwordForm.reset()
-      setPasswordSuccess(true)
-      setTimeout(() => setPasswordSuccess(false), 3000)
+      toast.success('Şifre güncellendi')
     },
+    onError: (err: any) =>
+      toast.error(err.response?.data?.detail || 'Şifre güncellenemedi'),
   })
 
   return (
@@ -129,12 +127,6 @@ export default function SettingsPage() {
             >
               {profileMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
-            {profileSuccess && (
-              <span className="text-sm text-green-600">Profil güncellendi</span>
-            )}
-            {profileMutation.isError && (
-              <span className="text-sm text-red-600">Hata oluştu</span>
-            )}
           </div>
         </form>
       </div>
@@ -174,9 +166,6 @@ export default function SettingsPage() {
             >
               {webhookMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
-            {webhookSuccess && (
-              <span className="text-sm text-green-600">Webhook ayarları güncellendi</span>
-            )}
           </div>
         </form>
       </div>
@@ -233,12 +222,6 @@ export default function SettingsPage() {
             <button type="submit" disabled={passwordMutation.isPending} className="btn-primary">
               {passwordMutation.isPending ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
             </button>
-            {passwordSuccess && <span className="text-sm text-green-600">Şifre güncellendi</span>}
-            {passwordMutation.isError && (
-              <span className="text-sm text-red-600">
-                {(passwordMutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Hata oluştu'}
-              </span>
-            )}
           </div>
         </form>
       </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Copy, ExternalLink, Trash2, ToggleLeft, ToggleRight, Pencil } from 'lucide-react'
+import { toast } from 'sonner'
 import { paymentLinksApi, type PaymentLink } from '@/api/paymentLinks'
 import { formatCurrency, formatDate } from '@/utils/format'
 import CreatePaymentLinkModal from './CreatePaymentLinkModal'
@@ -10,7 +11,6 @@ export default function PaymentLinksPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [editLink, setEditLink] = useState<PaymentLink | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
-  const [mutationError, setMutationError] = useState<string | null>(null)
 
   const { data: links = [], isLoading } = useQuery({
     queryKey: ['payment-links'],
@@ -21,13 +21,13 @@ export default function PaymentLinksPage() {
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       paymentLinksApi.update(id, { is_active }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payment-links'] }),
-    onError: (err: any) => setMutationError(err.response?.data?.detail || 'Durum güncellenemedi'),
+    onError: (err: any) => toast.error(err.response?.data?.detail || 'Durum güncellenemedi'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: paymentLinksApi.delete,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payment-links'] }),
-    onError: (err: any) => setMutationError(err.response?.data?.detail || 'Silinemedi'),
+    onError: (err: any) => toast.error(err.response?.data?.detail || 'Silinemedi'),
   })
 
   const copyUrl = (url: string, id: string) => {
@@ -50,13 +50,6 @@ export default function PaymentLinksPage() {
       </div>
 
       {isLoading && <div className="card p-8 text-center text-gray-400">Yükleniyor...</div>}
-
-      {mutationError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg flex justify-between items-center">
-          {mutationError}
-          <button onClick={() => setMutationError(null)} className="ml-4 opacity-60 hover:opacity-100">×</button>
-        </div>
-      )}
 
       <div className="space-y-3">
         {links.map((link) => (
