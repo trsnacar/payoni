@@ -15,9 +15,67 @@ from app.gateways.factory import GatewayFactory
 from app.core.middleware import RequestIDMiddleware, StructuredLoggingMiddleware, RateLimitMiddleware
 
 
+async def _seed_dev_users():
+    """Geliştirme ortamında demo kullanıcıları yoksa oluşturur."""
+    if settings.ENVIRONMENT != "development":
+        return
+    import uuid
+    from sqlalchemy import select
+    from app.db.session import AsyncSessionLocal
+    from app.models.merchant import Merchant
+    from app.core.security import hash_password
+
+    DEMO_USERS = [
+        {
+            "email": "kullanici@payoni.com",
+            "password": "Payoni2024!",
+            "business_name": "Demo İşletme",
+            "is_verified": True,
+            "is_superuser": False,
+            "onboarding_status": "approved",
+        },
+        {
+            "email": "demo@payoni.com",
+            "password": "Admin2024!",
+            "business_name": "Payoni Admin",
+            "is_verified": True,
+            "is_superuser": True,
+            "onboarding_status": "approved",
+        },
+    ]
+
+    async with AsyncSessionLocal() as db:
+        for u in DEMO_USERS:
+            result = await db.execute(select(Merchant).where(Merchant.email == u["email"]))
+            if result.scalar_one_or_none():
+                continue
+            merchant = Merchant(
+                id=uuid.uuid4(),
+                email=u["email"],
+                password_hash=hash_password(u["password"]),
+                business_name=u["business_name"],
+                company_type="limited",
+                tax_id="0000000000",
+                tax_office="Ankara",
+                trade_registry_no="DEMO0001",
+                company_address="Demo Adres, Ankara",
+                authorized_name="Demo Kullanıcı",
+                authorized_title="Genel Müdür",
+                authorized_tc="00000000000",
+                authorized_phone="+905550000000",
+                phone="+905550000000",
+                is_verified=u["is_verified"],
+                is_superuser=u["is_superuser"],
+                onboarding_status=u["onboarding_status"],
+            )
+            db.add(merchant)
+        await db.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+    await _seed_dev_users()
     yield
     await app.state.redis.aclose()
 
